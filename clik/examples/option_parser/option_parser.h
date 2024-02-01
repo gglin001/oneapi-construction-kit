@@ -5,6 +5,8 @@
 
 #include <functional>
 #include <vector>
+// tmp for building with clang on arm64
+#include <stdlib.h>
 
 class option_parser_t {
  public:
