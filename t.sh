@@ -8,7 +8,7 @@ docker run -d -it \
     base:latest
 
 micromamba install -y cmake ninja
-micromamba install -y clangdev llvmdev
+micromamba install -y clangdev llvmdev lld
 micromamba install -y spirv-headers spirv-tools lit
 micromamba install -y zlib
 
@@ -22,12 +22,19 @@ cmake \
     -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE \
     -DCMAKE_C_COMPILER:FILEPATH=/usr/bin/clang \
     -DCMAKE_CXX_COMPILER:FILEPATH=/usr/bin/clang++ \
+    -DCA_RISCV_ENABLED:BOOL=TRUE \
     -S $PWD \
     -B $PWD/build \
     -G Ninja
 
 cmake --build $PWD/build --config Debug --target all --
+cmake --build $PWD/build --config Debug --target install --
 
 # TODO: use clang from conda
 # -DCMAKE_C_COMPILER:FILEPATH=$CONDA_PREFIX/bin/clang \
 # -DCMAKE_CXX_COMPILER:FILEPATH=$CONDA_PREFIX/bin/clang++ \
+
+################################################################################
+
+# misc
+muxc --list-devices
