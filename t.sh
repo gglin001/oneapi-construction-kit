@@ -23,6 +23,7 @@ cmake \
     -DCMAKE_C_COMPILER:FILEPATH=/usr/bin/clang \
     -DCMAKE_CXX_COMPILER:FILEPATH=/usr/bin/clang++ \
     -DCA_RISCV_ENABLED:BOOL=TRUE \
+    -DCA_ENABLE_API=cl \
     -S $PWD \
     -B $PWD/build \
     -G Ninja
