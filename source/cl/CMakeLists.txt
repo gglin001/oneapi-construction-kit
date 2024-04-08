@@ -146,8 +146,11 @@ set(CL_SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/source/exports-3.0.cpp)
 
 add_ca_library(CL SHARED
-  ${CL_SOURCE_FILES} $<$<PLATFORM_ID:Windows>:${BUILTINS_RC_FILE}>)
-add_ca_library(CL-static STATIC EXCLUDE_FROM_ALL ${CL_SOURCE_FILES})
+  ${CL_SOURCE_FILES} $<$<PLATFORM_ID:Windows>:${BUILTINS_RC_FILE}>
+  DEPENDS abacus_generate)
+add_ca_library(CL-static STATIC EXCLUDE_FROM_ALL ${CL_SOURCE_FILES}
+  DEPENDS abacus_generate)
+
 target_compile_options(CL PRIVATE -Wno-nonportable-include-path)
 target_compile_options(CL-static PRIVATE -Wno-nonportable-include-path)
 
@@ -326,7 +329,7 @@ if(CA_RUNTIME_COMPILER_ENABLED AND CA_COMPILER_ENABLE_DYNAMIC_LOADER)
 endif()
 
 if(TARGET tidy-CL)
-  add_dependencies(tidy-CL abacus_generate mux-config)
+  add_dependencies(tidy-CL mux-config)
 endif()
 
 install(TARGETS CL
@@ -361,5 +364,9 @@ if(CA_ENABLE_TESTS)
   install(DIRECTORY
     ${PROJECT_SOURCE_DIR}/scripts/jenkins/cts_summary
     DESTINATION share COMPONENT OCLTest
+    FILES_MATCHING PATTERN *.csv)
+  install(DIRECTORY
+    scripts/
+    DESTINATION share/cts_summary COMPONENT OCLTest
     FILES_MATCHING PATTERN *.csv)
 endif()

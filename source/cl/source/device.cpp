@@ -118,8 +118,8 @@ _cl_device_id::_cl_device_id(cl_platform_id platform,
                          : CL_GLOBAL),
       max_clock_frequency(mux_device->info->clock_frequency),
       max_compute_units(mux_device->info->compute_units),
-      max_constant_args(8),                 // 8 is spec mandated minimum
-      max_constant_buffer_size(64 * 1024),  // 64k is spec mandated minimum
+      max_constant_args(8),                   // 8 is spec mandated minimum
+      max_constant_buffer_size(64L * 1024L),  // 64k is spec mandated minimum
       max_mem_alloc_size(mux_device->info->allocation_size),
       max_parameter_size(1024),  // 1024 is spec mandated minimum
       max_read_image_args(mux_device->info->max_sampled_images),
@@ -186,10 +186,15 @@ _cl_device_id::_cl_device_id(cl_platform_id platform,
       printf_buffer_size(compiler::PRINTF_BUFFER_SIZE),
       preferred_interop_user_sync(CL_TRUE),
       profile(),
-      profiling_timer_resolution(5),                // Get from Mux?
-      queue_properties(CL_QUEUE_PROFILING_ENABLE),  // Get from Mux?
+      profiling_timer_resolution(5),  // Get from Mux?
+      queue_properties(CL_QUEUE_PROFILING_ENABLE
+#ifdef CA_ENABLE_OUT_OF_ORDER_EXEC_MODE
+                       | CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE
+#endif
+                       ),  // Get from Mux?
       reference_count(1),  // All devices are root devices.
-      single_fp_config(setOpenCLFromMux(mux_device->info->float_capabilities)),
+      single_fp_config(setOpenCLFromMux(mux_device->info->float_capabilities) |
+                       CL_FP_CORRECTLY_ROUNDED_DIVIDE_SQRT),
       type(),
       vendor_id(mux_device->info->khronos_vendor_id)
 #if defined(CL_VERSION_3_0)
@@ -297,6 +302,8 @@ _cl_device_id::_cl_device_id(cl_platform_id platform,
     case mux_device_type_custom:
       type = CL_DEVICE_TYPE_CUSTOM;
       break;
+    default:
+      OCL_ABORT("Unsupported device type");
   }
 
   auto builtins =

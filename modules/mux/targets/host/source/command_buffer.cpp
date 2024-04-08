@@ -38,7 +38,7 @@ size_t calcPackedArgsAllocSize(
   size_t offset = 0;
   for (unsigned i = 0; i < descriptors.size(); i++) {
     const auto descriptor = descriptors[i];
-    size_t size = 0;
+    size_t size;
     switch (descriptor.type) {
       case mux_descriptor_info_type_sampler:
         size = sizeof(size_t);
@@ -53,6 +53,9 @@ size_t calcPackedArgsAllocSize(
       } break;
       case mux_descriptor_info_type_shared_local_buffer: {
         size = sizeof(size_t);
+      } break;
+      default: {
+        size = 0;
       } break;
     }
     offsets[i] = offset;
@@ -84,7 +87,7 @@ void populatePackedArgs(
       } break;
       case mux_descriptor_info_type_image: {
 #ifdef HOST_IMAGE_SUPPORT
-        mux_descriptor_info_image_s info = descriptor.image_descriptor;
+        const mux_descriptor_info_image_s info = descriptor.image_descriptor;
 
         host::image_s *const host_image =
             static_cast<host::image_s *>(info.image);
@@ -98,7 +101,8 @@ void populatePackedArgs(
       } break;
       case mux_descriptor_info_type_sampler: {
 #ifdef HOST_IMAGE_SUPPORT
-        mux_descriptor_info_sampler_s info = descriptor.sampler_descriptor;
+        const mux_descriptor_info_sampler_s info =
+            descriptor.sampler_descriptor;
 
         cl_addressing_mode addressing_mode = 0;
         switch (info.sampler.address_mode) {
@@ -154,6 +158,8 @@ void populatePackedArgs(
         std::memcpy(packed_args_alloc + offset, &nullvar, sizeof(void *));
         offset += sizeof(void *);
       } break;
+      default:
+        break;
     }
   }
 }
@@ -631,7 +637,7 @@ mux_result_t hostCommandReadImage(mux_command_buffer_t command_buffer,
 #ifdef HOST_IMAGE_SUPPORT
   auto host = static_cast<host::command_buffer_s *>(command_buffer);
 
-  std::lock_guard<std::mutex> lock(host->mutex);
+  const std::lock_guard<std::mutex> lock(host->mutex);
 
   if (host->commands.emplace_back(host::command_info_read_image_s{
           image, offset, extent, row_size, slice_size, pointer})) {
@@ -677,7 +683,7 @@ mux_result_t hostCommandWriteImage(mux_command_buffer_t command_buffer,
 #ifdef HOST_IMAGE_SUPPORT
   auto host = static_cast<host::command_buffer_s *>(command_buffer);
 
-  std::lock_guard<std::mutex> lock(host->mutex);
+  const std::lock_guard<std::mutex> lock(host->mutex);
 
   if (host->commands.emplace_back(host::command_info_write_image_s{
           image, offset, extent, row_size, slice_size, pointer})) {
@@ -723,7 +729,7 @@ mux_result_t hostCommandFillImage(mux_command_buffer_t command_buffer,
 #ifdef HOST_IMAGE_SUPPORT
   auto host = static_cast<host::command_buffer_s *>(command_buffer);
 
-  std::lock_guard<std::mutex> lock(host->mutex);
+  const std::lock_guard<std::mutex> lock(host->mutex);
 
   host::command_info_fill_image_s fill_image;
   fill_image.image = image;
@@ -774,7 +780,7 @@ mux_result_t hostCommandCopyImage(mux_command_buffer_t command_buffer,
 #ifdef HOST_IMAGE_SUPPORT
   auto host = static_cast<host::command_buffer_s *>(command_buffer);
 
-  std::lock_guard<std::mutex> lock(host->mutex);
+  const std::lock_guard<std::mutex> lock(host->mutex);
 
   if (host->commands.emplace_back(host::command_info_copy_image_s{
           src_image, dst_image, src_offset, dst_offset, extent})) {
@@ -818,7 +824,7 @@ mux_result_t hostCommandCopyImageToBuffer(
 #ifdef HOST_IMAGE_SUPPORT
   auto host = static_cast<host::command_buffer_s *>(command_buffer);
 
-  std::lock_guard<std::mutex> lock(host->mutex);
+  const std::lock_guard<std::mutex> lock(host->mutex);
 
   if (host->commands.emplace_back(host::command_info_copy_image_to_buffer_s{
           src_image, dst_buffer, src_offset, dst_offset, extent})) {
@@ -862,7 +868,7 @@ mux_result_t hostCommandCopyBufferToImage(
 #ifdef HOST_IMAGE_SUPPORT
   auto host = static_cast<host::command_buffer_s *>(command_buffer);
 
-  std::lock_guard<std::mutex> lock(host->mutex);
+  const std::lock_guard<std::mutex> lock(host->mutex);
 
   if (host->commands.emplace_back(host::command_info_copy_buffer_to_image_s{
           src_buffer, dst_image, src_offset, dst_offset, extent})) {

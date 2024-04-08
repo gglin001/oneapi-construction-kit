@@ -273,10 +273,8 @@ struct ScheduleGenerator {
       const compiler::utils::BarrierWithLiveVars &barrier, BasicBlock *block,
       StoreInst *SI) {
     DIBuilder DIB(module, /*AllowUnresolved*/ false);
-    for (auto debug_pair : barrier.getDebugIntrinsics()) {
-      auto *old_dbg_declare = debug_pair.first;
-      const unsigned live_var_offset = debug_pair.second;
-
+    auto RecreateDebugIntrinsic = [&](DILocalVariable *const old_var,
+                                      const unsigned live_var_offset) {
       const uint64_t dwPlusOp = dwarf::DW_OP_plus_uconst;
       // Use a DWARF expression to point to byte offset in struct where
       // the variable lives. This involves dereferencing the pointer
@@ -286,13 +284,39 @@ struct ScheduleGenerator {
       auto expr = DIB.createExpression(
           ArrayRef<uint64_t>{dwarf::DW_OP_deref, dwPlusOp, live_var_offset});
       // Remap this debug variable to its new scope.
-      auto *old_var = old_dbg_declare->getVariable();
       auto *new_var = DIB.createAutoVariable(
           block->getParent()->getSubprogram(), old_var->getName(),
           old_var->getFile(), old_var->getLine(), old_var->getType(),
           /*AlwaysPreserve=*/false, DINode::FlagZero,
           old_var->getAlignInBits());
       // Create intrinsic
+#if LLVM_VERSION_GREATER_EQUAL(19, 0)
+      if (!module.IsNewDbgInfoFormat) {
+        auto *const DII = DIB.insertDeclare(barrier.getDebugAddr(), new_var,
+                                            expr, wrapperDbgLoc, block)
+                              .get<Instruction *>();
+
+        // Bit of a HACK to produce the same debug output as the Mem2Reg
+        // pass used to do.
+        auto *const DVIntrinsic = cast<DbgVariableIntrinsic>(DII);
+        ConvertDebugDeclareToDebugValue(DVIntrinsic, SI, DIB);
+      } else {
+        auto *const DVR = static_cast<DbgVariableRecord *>(
+            DIB.insertDeclare(barrier.getDebugAddr(), new_var, expr,
+                              wrapperDbgLoc, block)
+                .get<DbgRecord *>());
+
+        // This is nasty, but LLVM errors out on trailing debug info, we need a
+        // subsequent instruction even if we delete it immediately afterwards.
+        auto *DummyInst = new UnreachableInst(module.getContext(), block);
+
+        // Bit of a HACK to produce the same debug output as the Mem2Reg
+        // pass used to do.
+        ConvertDebugDeclareToDebugValue(DVR, SI, DIB);
+
+        DummyInst->eraseFromParent();
+      }
+#else
       auto *const DII = DIB.insertDeclare(barrier.getDebugAddr(), new_var, expr,
                                           wrapperDbgLoc, block);
 
@@ -300,7 +324,18 @@ struct ScheduleGenerator {
       // pass used to do.
       auto *const DVIntrinsic = cast<DbgVariableIntrinsic>(DII);
       ConvertDebugDeclareToDebugValue(DVIntrinsic, SI, DIB);
+#endif
+    };
+    for (auto debug_pair : barrier.getDebugIntrinsics()) {
+      RecreateDebugIntrinsic(debug_pair.first->getVariable(),
+                             debug_pair.second);
     }
+#if LLVM_VERSION_GREATER_EQUAL(19, 0)
+    for (auto debug_pair : barrier.getDebugDbgVariableRecords()) {
+      RecreateDebugIntrinsic(debug_pair.first->getVariable(),
+                             debug_pair.second);
+    }
+#endif
   }
 
   void createWorkItemLoopBody(
@@ -408,7 +443,8 @@ struct ScheduleGenerator {
       preheader->moveAfter(block);
       exitBlock->moveAfter(preheader);
 
-      auto needLoop = new ICmpInst(*block, CmpInst::ICMP_NE, zero, totalSize);
+      auto *const needLoop = CmpInst::Create(
+          Instruction::ICmp, CmpInst::ICMP_NE, zero, totalSize, "", block);
 
       BranchInst::Create(preheader, exitBlock, needLoop, block);
 
@@ -544,8 +580,8 @@ struct ScheduleGenerator {
           tailUniformBlock =
               BasicBlock::Create(context, "ca_tail_uniform_load", func);
 
-          auto *const needTail =
-              new ICmpInst(*block, CmpInst::ICMP_EQ, totalSize, zero);
+          auto *const needTail = CmpInst::Create(
+              Instruction::ICmp, CmpInst::ICMP_EQ, totalSize, zero, "", block);
           BranchInst::Create(tailUniformBlock, mainUniformBlock, needTail,
                              block);
         }
@@ -687,8 +723,9 @@ struct ScheduleGenerator {
         subgroupMergePhi = PHINode::Create(i32Ty, 2, "", mainExitBB);
         subgroupMergePhi->addIncoming(i32Zero, block);
 
-        auto needMain =
-            new ICmpInst(*block, CmpInst::ICMP_NE, zero, mainLoopLimit);
+        auto *const needMain =
+            CmpInst::Create(Instruction::ICmp, CmpInst::ICMP_NE, zero,
+                            mainLoopLimit, "", block);
 
         BranchInst::Create(mainPreheaderBB, mainExitBB, needMain, block);
       }
@@ -799,8 +836,8 @@ struct ScheduleGenerator {
         tailPreheaderBB->moveAfter(mainExitBB);
         tailExitBB->moveAfter(tailPreheaderBB);
 
-        auto needPeeling =
-            new ICmpInst(*mainExitBB, CmpInst::ICMP_NE, zero, peel);
+        auto *const needPeeling = CmpInst::Create(
+            Instruction::ICmp, CmpInst::ICMP_NE, zero, peel, "", mainExitBB);
 
         BranchInst::Create(tailPreheaderBB, tailExitBB, needPeeling,
                            mainExitBB);
@@ -1000,8 +1037,9 @@ struct ScheduleGenerator {
                       scanMergePhi->addIncoming(ivs1[1], block);
                     }
 
-                    auto needMain = new ICmpInst(*block, CmpInst::ICMP_NE, zero,
-                                                 mainLoopLimit);
+                    auto *const needMain =
+                        CmpInst::Create(Instruction::ICmp, CmpInst::ICMP_NE,
+                                        zero, mainLoopLimit, "", block);
 
                     BranchInst::Create(mainPreheaderBB, mainExitBB, needMain,
                                        block);
@@ -1111,8 +1149,9 @@ struct ScheduleGenerator {
                     tailPreheaderBB->moveAfter(mainExitBB);
                     tailExitBB->moveAfter(tailPreheaderBB);
 
-                    auto needPeeling =
-                        new ICmpInst(*mainExitBB, CmpInst::ICMP_NE, zero, peel);
+                    auto *const needPeeling =
+                        CmpInst::Create(Instruction::ICmp, CmpInst::ICMP_NE,
+                                        zero, peel, "", mainExitBB);
 
                     BranchInst::Create(tailPreheaderBB, tailExitBB, needPeeling,
                                        mainExitBB);
@@ -1625,6 +1664,7 @@ Function *compiler::utils::WorkItemLoopsPass::makeWrapperFunction(
 
       const auto &successors = barrierMain.getSuccessorIds(i);
       const auto num_succ = successors.size();
+
       if (num_succ == 1) {
         // If there is only one successor, we can branch directly to it
         exitIR.CreateBr(bbs[successors.front()]);
@@ -1635,11 +1675,28 @@ Function *compiler::utils::WorkItemLoopsPass::makeWrapperFunction(
             BasicBlock::Create(context, "barrier.branch", new_wrapper);
         auto *const ld_next_id = new LoadInst(index_type, nextID, "", br_block);
         auto *const cmp_id =
-            new ICmpInst(*br_block, CmpInst::ICMP_EQ, ld_next_id, bb_id);
+            CmpInst::Create(Instruction::ICmp, CmpInst::ICMP_EQ, ld_next_id,
+                            bb_id, "", br_block);
         BranchInst::Create(bbs[successors[0]], bbs[successors[1]], cmp_id,
                            br_block);
 
         exitIR.CreateBr(br_block);
+      } else if (num_succ == 0) {
+        // If a barrier region has no successor, we just emit a call to
+        // llvm.trap and unreachable. A barrier region can have zero successors
+        // if all its terminators end in unreachable. Since there are no
+        // successors, it is not possible to continue and therefore we emit an
+        // unreachable here.
+
+        // TODO: we should be flagging up unreachables sooner, so that we avoid
+        // wrapping barrier regions with no successors with work item loops,
+        // and we should also make sure that the barrier region has no
+        // successors because of all its terminators ending in unreachable.
+        // If it's not the case we may want to handle that differently.
+        auto trap =
+            M.getOrInsertFunction("llvm.trap", Type::getVoidTy(context));
+        exitIR.CreateCall(trap);
+        exitIR.CreateUnreachable();
       } else {
         // Make a basic block with a switch to jump to the next subkernel
         auto *const switch_body =

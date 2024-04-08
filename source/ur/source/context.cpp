@@ -182,7 +182,7 @@ ur::device_allocation_info::~device_allocation_info() {
     muxFreeMemory(device->mux_device, mux_memory,
                   device->platform->mux_allocator_info);
   }
-};
+}
 
 cargo::expected<ur_context_handle_t, ur_result_t> ur_context_handle_t_::create(
     ur_platform_handle_t platform,
@@ -203,7 +203,7 @@ ur::allocation_info *ur_context_handle_t_::findUSMAllocation(
     return nullptr;
   }
 
-  std::lock_guard<std::mutex> lock(mutex);
+  const std::lock_guard<std::mutex> lock(mutex);
   auto result =
       std::find_if(usm_allocations.begin(), usm_allocations.end(),
                    [base_ptr](std::unique_ptr<ur::allocation_info> &ptr) {

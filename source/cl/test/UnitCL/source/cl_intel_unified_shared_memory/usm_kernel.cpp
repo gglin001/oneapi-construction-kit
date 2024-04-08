@@ -132,7 +132,7 @@ TEST_P(USMSetKernelArgMemPointerTest, InvalidUsage) {
   // The cl_intel_unified_shared_memory specification has an open question
   // whether invalid pointers should result in an error. We accept this as Intel
   // passes invalid pointers in valid SYCL code.
-  cl_uint usm_arg_index = GetParam();
+  const cl_uint usm_arg_index = GetParam();
   err = clSetKernelArgMemPointerINTEL(kernel, usm_arg_index, user_ptr);
   ASSERT_SUCCESS(err);
 
@@ -147,7 +147,7 @@ TEST_P(USMSetKernelArgMemPointerTest, InvalidUsage) {
 
 // Test for valid API usage of clSetKernelArgMemPointerINTEL()
 TEST_P(USMSetKernelArgMemPointerTest, ValidUsage) {
-  cl_uint arg_index = GetParam();
+  const cl_uint arg_index = GetParam();
 
   for (auto ptr : allPointers()) {
     void *offset_ptr = getPointerOffset(ptr, sizeof(cl_int));
@@ -174,7 +174,7 @@ TEST_P(USMSetKernelExecInfoTest, ValidUsage) {
   const cl_kernel_exec_info param_name = GetParam();
 
   if (CL_KERNEL_EXEC_INFO_USM_PTRS_INTEL == param_name) {
-    cargo::small_vector<void *, 3> indirect_usm_pointers = allPointers();
+    auto indirect_usm_pointers = allPointers();
 
     EXPECT_SUCCESS(
         clSetKernelExecInfo(kernel, CL_KERNEL_EXEC_INFO_USM_PTRS_INTEL,
@@ -202,7 +202,7 @@ TEST_P(USMSetKernelExecInfoTest, InvalidUsage) {
     cl_int err = clSetKernelExecInfo(nullptr, param_name, 0, nullptr);
     EXPECT_EQ_ERRCODE(err, CL_INVALID_KERNEL);
 
-    cargo::small_vector<void *, 3> indirect_usm_pointers = allPointers();
+    auto indirect_usm_pointers = allPointers();
 
     // Invalid param_value_size
     err = clSetKernelExecInfo(kernel, param_name, 0,
@@ -295,7 +295,6 @@ struct USMVectorAddKernelTest : public USMKernelTest {
     ASSERT_SUCCESS(err);
     ASSERT_NE(cl_mem_buffer, nullptr);
 
-    initPointers(bytes, align);
     BuildKernel(source);
 
     queue = clCreateCommandQueue(context, device, 0, &err);

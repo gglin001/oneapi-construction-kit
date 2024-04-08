@@ -50,15 +50,12 @@ target_compile_definitions(abacus_static PRIVATE
 
 # If extra ComputeAorta commands exist, use them.
 if(COMMAND add_ca_tidy)
-  add_ca_tidy(abacus_static ${abacus_sources_host})
-  if(TARGET tidy-abacus_static)
-    add_dependencies(tidy-abacus_static abacus_generate)
-  endif()
+  add_ca_tidy(abacus_static ${abacus_sources_host} DEPENDS abacus_generate)
 endif()
 
 target_include_directories(abacus_static PUBLIC
-  ${CMAKE_BINARY_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+  $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/../include)
 target_compile_options(abacus_static
   PUBLIC
   $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:QCC>>:

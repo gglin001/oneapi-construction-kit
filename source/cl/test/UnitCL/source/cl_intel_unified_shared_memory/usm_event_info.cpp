@@ -78,7 +78,12 @@ TEST_F(USMEventInfoTest, clEnqueueMemFillINTEL_EventInfo) {
   cl_int err;
 
   for (auto ptr : allPointers()) {
-    cl_event wait_event;
+    if (ptr == host_shared_ptr) {
+      // The host shared_ptr isn't valid for this queue's device
+      continue;
+    }
+
+    cl_event wait_event{};
     err = clEnqueueMemFillINTEL(queue, ptr, pattern, sizeof(pattern),
                                 sizeof(pattern) * 2, 0, nullptr, &wait_event);
     EXPECT_SUCCESS(err);
@@ -99,7 +104,7 @@ TEST_F(USMEventInfoTest, clEnqueueMemFillINTEL_EventInfo) {
 }
 
 TEST_F(USMEventInfoTest, clEnqueueMemcpyINTEL_EventInfo) {
-  std::array<std::pair<void *, void *>, 6> pairs = {{
+  const std::array<std::pair<void *, void *>, 6> pairs = {{
       {host_ptr, device_ptr},
       {host_ptr, shared_ptr},
       {device_ptr, host_ptr},
@@ -115,10 +120,11 @@ TEST_F(USMEventInfoTest, clEnqueueMemcpyINTEL_EventInfo) {
       continue;
     }
 
-    std::array<cl_event, 2> events;
+    std::array<cl_event, 2> events{};
     void *offset_ptr = getPointerOffset(ptr_a, sizeof(cl_int));
-    cl_int err = clEnqueueMemcpyINTEL(queue, CL_TRUE, offset_ptr, ptr_a,
-                                      sizeof(cl_int), 0, nullptr, &events[0]);
+    cl_int err =
+        clEnqueueMemcpyINTEL(queue, CL_TRUE, offset_ptr, ptr_a, sizeof(cl_int),
+                             0, nullptr, events.data());
     EXPECT_SUCCESS(err);
 
     ASSERT_SUCCESS(GetEventInfoHelper(
@@ -152,7 +158,7 @@ TEST_F(USMEventInfoTest, clEnqueueMemcpyINTEL_EventInfo) {
 TEST_F(USMEventInfoTest, clEnqueueMigrateMemINTEL_EventInfo) {
   for (auto ptr : allPointers()) {
     cl_event event;
-    cl_int err = clEnqueueMigrateMemINTEL(
+    const cl_int err = clEnqueueMigrateMemINTEL(
         queue, ptr, bytes, CL_MIGRATE_MEM_OBJECT_HOST, 0, nullptr, &event);
     EXPECT_SUCCESS(err);
 
@@ -176,7 +182,7 @@ TEST_F(USMEventInfoTest, clEnqueueMemAdviseINTEL_EventInfo) {
     // Create a user event to block advise command happening immediately
     cl_int err;
     cl_event user_event = clCreateUserEvent(context, &err);
-    cl_event wait_event;
+    cl_event wait_event{};
     ASSERT_SUCCESS(err);
 
     // Enqueue a no-op advise command

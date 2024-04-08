@@ -191,10 +191,10 @@ struct clSetProgramSpecializationConstantSuccessTest
     }
     cl_event taskEvent;
     ASSERT_SUCCESS(clEnqueueTask(commandQueue, kernel, 0, nullptr, &taskEvent));
-    std::array<cl_event, 8> resultEvents;
+    std::array<cl_event, 8> resultEvents{};
     ASSERT_SUCCESS(clEnqueueReadBuffer(commandQueue, boolBuffer, CL_FALSE, 0,
                                        sizeof(bool) * 2, boolResults.data(), 1,
-                                       &taskEvent, &resultEvents[0]));
+                                       &taskEvent, resultEvents.data()));
     ASSERT_SUCCESS(clEnqueueReadBuffer(commandQueue, charBuffer, CL_FALSE, 0,
                                        sizeof(cl_char), &charResult, 1,
                                        &taskEvent, &resultEvents[1]));

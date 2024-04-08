@@ -1895,6 +1895,10 @@ TEST_P(HalfMathBuiltins, Precision_83_Half_rootn) {
         // x is +/0 zero and y is odd < 0.
         case 0x80000001:
           return std::copysign(INFINITY, x);
+
+        // not possible
+        default:
+          return NAN;
       }
     }
 
@@ -1924,8 +1928,8 @@ TEST_P(Execution, Precision_84_Double_Remquo) {
 
   const uint64_t N = 1;
 
-  cl_double x = -4.1757451841279743e+225;
-  cl_double y = std::numeric_limits<cl_double>::infinity();
+  const cl_double x = -4.1757451841279743e+225;
+  const cl_double y = std::numeric_limits<cl_double>::infinity();
 
   // This test checks we correctly set the quotient to 0 if `y` is infinite.
   AddOutputBuffer(N, kts::Reference1D<cl_int>([x, y](size_t) {
@@ -2230,12 +2234,12 @@ TEST_P(ExecutionOpenCLC, Precision_90_Half_Ldexp_Edgecases) {
   }
 
   if (!UCL::hasDenormSupport(device, CL_DEVICE_HALF_FP_CONFIG)) {
-    // All save one of the edge cases tested expect a denormal result,
+    // All save two of the edge cases tested expect a denormal result,
     // as the focus is on avoiding underflow to zero.
     GTEST_SKIP();
   }
 
-  const size_t N = 13;
+  const size_t N = 19;
   const std::pair<cl_half, cl_int> inputs[N] = {
       {0x21f8 /* 0.01165772 */, -17},
       {0x11f8 /* 0.0007286075 */, -13},
@@ -2250,6 +2254,12 @@ TEST_P(ExecutionOpenCLC, Precision_90_Half_Ldexp_Edgecases) {
       {0x0001 /* 1p-24 */, CL_INT_MIN /*-2147483648*/},
       {0x4000 /* 4.0 */, CL_INT_MAX /*2147483647*/},
       {0xe73c /* -1852 */, -35},
+      {0xfaec /* -56704 */, -40},
+      {0x78ae /* 38336 */, -40},
+      {0xfb93 /* -62048 */, -40},
+      {0x7bed /* 64928 */, -40},
+      {0xf934 /* -42624 */, -41},
+      {0x7287 /* 13368 */, 2},
   };
 
   const cl_half outputs[N] = {
@@ -2284,6 +2294,26 @@ TEST_P(ExecutionOpenCLC, Precision_90_Half_Ldexp_Edgecases) {
       // Although this result is too low to be representable in half we expect
       // the lowest representable half rather than zero due to rounding.
       0x8001, /* -5.960464477539063e-08 */
+      // ldexp(-56704, -40) ==> -5.1572e-08
+      // Although this result is too low to be representable in half we expect
+      // the lowest representable half rather than zero due to rounding.
+      0x8001, /* -5.960464477539063e-08 */
+      // ldexp(-38336, -40) ==> 3.48664e-08
+      // Although this result is too low to be representable in half we expect
+      // the lowest representable half rather than zero due to rounding.
+      0x1, /* 5.960464477539063e-08 */
+      // ldexp(-62048, -40) ==> -5.64323e-08
+      // Although this result is too low to be representable in half we expect
+      // the lowest representable half rather than zero due to rounding.
+      0x8001, /* -5.960464477539063e-08 */
+      // ldexp(64928, -40) ==> 5.90517e-08
+      // Although this result is too low to be representable in half we expect
+      // the lowest representable half rather than zero due to rounding.
+      0x1, /* 5.960464477539063e-08 */
+      // ldexp(-42624, -41) is too small to represent.
+      0x8000, /* -0.0 */
+      // ldexp(13368, 2) must not involve an infinite intermediate result.
+      0x7a87, /* 53472 */
   };
 
   AddInputBuffer(N, kts::Reference1D<cl_half>([&inputs](size_t i) {
