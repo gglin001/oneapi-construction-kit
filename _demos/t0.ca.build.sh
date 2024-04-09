@@ -22,8 +22,8 @@
 
 cmake --preset cl_linux
 # or
-# TODO: not work
-# cmake --preset cl_macos
+# no riscv enabled
+cmake --preset cl_macos
 
 cmake --build $PWD/build --target all
 
