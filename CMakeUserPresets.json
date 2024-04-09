@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "configurePresets": [
+    {
+      "name": "cl_allen",
+      "inherits": "cl",
+      "cacheVariables": {
+        // $CONDA_PREFIX
+        "CA_LLVM_INSTALL_DIR": "/root/micromamba/envs/pyenv",
+        "UNUSED": "PLACEHOLDER"
+      }
+    }
+  ]
+}

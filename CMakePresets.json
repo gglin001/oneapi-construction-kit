@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "configurePresets": [
+    {
+      "name": "cl",
+      "description": "cl target",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "CMAKE_C_COMPILER": "/usr/bin/clang",
+        "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+        "CMAKE_INSTALL_RPATH_USE_LINK_PATH": true,
+        "CA_LLVM_INSTALL_DIR": "/root/micromamba/envs/pyenv",
+        "CA_ENABLE_DOCUMENTATION": false,
+        "CA_ENABLE_TESTS": false,
+        "CA_RISCV_ENABLED": true,
+        "CA_ENABLE_API": "cl",
+        "GIT_CLANG_FORMAT_INCLUDED": true,
+        "args_CLANG_FORMAT_EXECUTABLE": "clang-format"
+      }
+    }
+  ]
+}
