@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "configurePresets": [
+    {
+      "name": "clik_linux",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "CMAKE_C_COMPILER": "/usr/bin/clang",
+        "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+        "CMAKE_INSTALL_RPATH_USE_LINK_PATH": true,
+        // $CONDA_PREFIX
+        "CA_LLVM_INSTALL_DIR": "/root/micromamba/envs/pyenv"
+      }
+    },
+    {
+      "name": "clik_macos",
+      "inherits": "clik_linux",
+      "cacheVariables": {
+        "CA_LLVM_INSTALL_DIR": "/Users/allen/micromamba/envs/mlir"
+      }
+    }
+  ]
+}
