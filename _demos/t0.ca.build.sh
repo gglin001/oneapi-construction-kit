@@ -20,6 +20,7 @@
 
 # cmake --preset cl
 
+# TODO: not work on llvm-18.1
 cmake --preset cl_linux
 # or
 # no riscv enabled
