@@ -22,7 +22,8 @@
 
 cmake --preset cl_linux
 # or
-cmake --preset cl_macos
+# TODO: not work
+# cmake --preset cl_macos
 
 cmake --build $PWD/build --target all
 
