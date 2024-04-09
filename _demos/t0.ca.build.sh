@@ -20,7 +20,9 @@
 
 # cmake --preset cl
 
-cmake --preset cl_allen
+cmake --preset cl_linux
+# or
+cmake --preset cl_macos
 
 cmake --build $PWD/build --target all
 

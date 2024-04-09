@@ -2,11 +2,19 @@
   "version": 2,
   "configurePresets": [
     {
-      "name": "cl_allen",
+      "name": "cl_linux",
       "inherits": "cl",
       "cacheVariables": {
         // $CONDA_PREFIX
         "CA_LLVM_INSTALL_DIR": "/root/micromamba/envs/pyenv",
+        "UNUSED": "PLACEHOLDER"
+      }
+    },
+    {
+      "name": "cl_macos",
+      "inherits": "cl",
+      "cacheVariables": {
+        "CA_LLVM_INSTALL_DIR": "/Users/allen/micromamba/envs/mlir",
         "UNUSED": "PLACEHOLDER"
       }
     }
