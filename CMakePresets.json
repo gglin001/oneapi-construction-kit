@@ -2,7 +2,7 @@
   "version": 2,
   "configurePresets": [
     {
-      "name": "cl",
+      "name": "cl_linux",
       "description": "cl target",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build",
@@ -13,13 +13,23 @@
         "CMAKE_C_COMPILER": "/usr/bin/clang",
         "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
         "CMAKE_INSTALL_RPATH_USE_LINK_PATH": true,
+        // $CONDA_PREFIX
         "CA_LLVM_INSTALL_DIR": "/root/micromamba/envs/pyenv",
         "CA_ENABLE_DOCUMENTATION": false,
         "CA_ENABLE_TESTS": false,
         "CA_RISCV_ENABLED": true,
         "CA_ENABLE_API": "cl",
         "GIT_CLANG_FORMAT_INCLUDED": true,
-        "args_CLANG_FORMAT_EXECUTABLE": "clang-format"
+        "args_CLANG_FORMAT_EXECUTABLE": "clang-format",
+        "LLVM_ENABLE_ASSERTIONS": true
+      }
+    },
+    {
+      "name": "cl_macos",
+      "inherits": "cl_linux",
+      "cacheVariables": {
+        "CA_RISCV_ENABLED": false,
+        "CA_LLVM_INSTALL_DIR": "/Users/allen/micromamba/envs/mlir"
       }
     }
   ]

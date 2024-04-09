@@ -28,3 +28,6 @@ TODO
 
 # OpenCL kernels stored for debugging purposes
 *cl_program_*.cl
+
+# coredump
+core
