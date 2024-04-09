@@ -1,0 +1,10 @@
+{
+    "terminal.integrated.env.linux": {
+        "EXT_PATH": "${workspaceFolder}/build/bin",
+    },
+    "terminal.integrated.env.osx": {
+        "EXT_PATH": "${workspaceFolder}/build/bin",
+    },
+    "files.trimTrailingWhitespace": false,
+    "files.insertFinalNewline": false,
+}
