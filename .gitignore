@@ -31,3 +31,5 @@ TODO
 
 # coredump
 core
+
+CMakeUserPresets.json
