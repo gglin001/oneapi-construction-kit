@@ -188,7 +188,8 @@ llvm::ModulePassManager RiscvPassMachinery::getLateTargetPasses() {
   llvm::ModulePassManager PM;
 
   std::optional<std::string> env_debug_prefix;
-#if defined(CA_ENABLE_DEBUG_SUPPORT) || defined(CA_RISCV_DEMO_MODE)
+#if !defined(NDEBUG) || defined(CA_ENABLE_DEBUG_SUPPORT) || \
+    defined(CA_RISCV_DEMO_MODE)
   env_debug_prefix = target.env_debug_prefix;
 #endif
 
@@ -212,10 +213,6 @@ llvm::ModulePassManager RiscvPassMachinery::getLateTargetPasses() {
   // Forcibly compute the BuiltinInfoAnalysis so that cached retrievals work.
   PM.addPass(llvm::RequireAnalysisPass<compiler::utils::BuiltinInfoAnalysis,
                                        llvm::Module>());
-
-  // This potentially fixes up any structs to match the spir alignment
-  // before we change to the backend layout
-  PM.addPass(compiler::utils::AlignModuleStructsPass());
 
   // Handle the generic address space
   PM.addPass(llvm::createModuleToFunctionPassAdaptor(

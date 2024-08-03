@@ -51,8 +51,8 @@
 #include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/IR/PassManager.h>
 #include <llvm/Support/CrashRecoveryContext.h>
+#include <llvm/TargetParser/Triple.h>
 #include <llvm/Transforms/IPO/GlobalDCE.h>
-#include <multi_llvm/triple.h>
 #include <mux/mux.hpp>
 
 #include <cstdint>
@@ -102,6 +102,16 @@ static cargo::expected<cargo::dynamic_array<uint8_t>, compiler::Result>
 emitBinary(llvm::Module *module, llvm::TargetMachine *target_machine) {
   llvm::SmallVector<char, 1024> object_code_buffer;
   llvm::raw_svector_ostream stream(object_code_buffer);
+
+#if !defined(NDEBUG) || defined(CA_ENABLE_DEBUG_SUPPORT)
+  if (std::getenv("CA_HOST_DUMP_ASM")) {
+    auto result = compiler::emitCodeGenFile(
+        *module, target_machine, llvm::errs(), /*create_assembly=*/true);
+    if (result != compiler::Result::SUCCESS) {
+      return cargo::make_unexpected(result);
+    }
+  }
+#endif
 
   auto result = compiler::emitCodeGenFile(*module, target_machine, stream);
   if (result != compiler::Result::SUCCESS) {
@@ -175,11 +185,6 @@ compiler::Result HostModule::createBinary(
     cargo::array_view<std::uint8_t> &buffer) {
   if (!finalized_llvm_module) {
     return compiler::Result::FINALIZE_PROGRAM_FAILURE;
-  }
-
-  if (!object_code.empty()) {
-    buffer = cargo::array_view<std::uint8_t>(object_code);
-    return compiler::Result::SUCCESS;
   }
 
   auto &host_target = static_cast<HostTarget &>(target);

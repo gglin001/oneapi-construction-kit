@@ -68,12 +68,37 @@ HostInfo::HostInfo(host::arch arch, host::os os,
   // If we're instantiating a compiler for the current system, then we know it
   // supports runtime compilation, otherwise it's a cross compiler.
   device_info = host_device_info;
-  supports_deferred_compilation = host_device_info->native;
+  deferred_compilation_enabled = host_device_info->native;
+  deferred_compilation_warning = nullptr;
 
   // JIT compilation is not yet supported on RISC-V
   if (arch == host::arch::RISCV32 || arch == host::arch::RISCV64) {
-    supports_deferred_compilation = false;
+    deferred_compilation_enabled = false;
   }
+
+#if !defined(NDEBUG) || defined(CA_ENABLE_DEBUG_SUPPORT)
+  if (deferred_compilation_enabled) {
+    if (std::getenv("CA_HOST_DUMP_ASM")) {
+      deferred_compilation_warning =
+          "CA_HOST_DUMP_ASM requires non-deferred compilation";
+      deferred_compilation_enabled = false;
+    }
+  }
+#endif
+
+  // If the user wants to override, let them. This may be useful for testing the
+  // non-deferred-compilation support, or may be useful for testing future LLVM
+  // improvements that may provide RISC-V JIT support.
+#if !defined(NDEBUG) || defined(CA_ENABLE_DEBUG_SUPPORT)
+  if (const char *env = std::getenv("CA_HOST_DEFERRED_COMPILATION")) {
+    char *end;
+    const long val = std::strtol(env, &end, 10);
+    if (*env != '\0' && (val == 0 || val == 1) && *end == '\0') {
+      deferred_compilation_enabled = val;
+    }
+  }
+#endif
+
   vectorizable = true;
   dma_optimizable = true;
   scalable_vector_support = false;
@@ -89,6 +114,17 @@ HostInfo::HostInfo(host::arch arch, host::os os,
 #else
   compilation_options = "";
 #endif
+}
+
+bool HostInfo::supports_deferred_compilation() const {
+  const bool enabled = deferred_compilation_enabled;
+  if (auto *warning = deferred_compilation_warning) {
+    (void)fprintf(stderr, "warning: %s. %s\n", warning,
+                  enabled ? "Deferred compilation forced enabled."
+                          : "Deferred compilation disabled.");
+    deferred_compilation_warning = nullptr;
+  }
+  return enabled;
 }
 
 std::unique_ptr<compiler::Target> HostInfo::createTarget(
@@ -116,11 +152,11 @@ void HostInfo::get(compiler::AddCompilerFn add_compiler) {
       HOST_CROSS_DEVICE_NAME_AARCH64));
 #endif
 #ifdef HOST_CROSS_X86
-  add_compiler(getCrossCompilerInfo<host::arch::X86, HOST_OS>(
+  add_compiler(getCrossCompilerInfo<host::arch::X86, host::os::LINUX>(
       HOST_CROSS_DEVICE_NAME_X86));
 #endif
 #ifdef HOST_CROSS_X86_64
-  add_compiler(getCrossCompilerInfo<host::arch::X86_64, HOST_OS>(
+  add_compiler(getCrossCompilerInfo<host::arch::X86_64, host::os::LINUX>(
       HOST_CROSS_DEVICE_NAME_X86_64));
 #endif
 #ifdef HOST_CROSS_RISCV32

@@ -18,8 +18,6 @@ Current directory layout:
   * `source/cl`: Encapsulates all source code which implements the OpenCL open
     standard, this is an optional component and may not be present dependent on
     license agreement.
-    * `source/cl/external/OpenCL-Headers/include`: This directory holds the
-      upstream headers in the sub-directory `external` (for example `CL/cl.h`).
     * `source/cl/source/extension/include`: This directory holds the headers
       for the Codeplay specific OpenCL extensions.
   * `source/vk`: Encapsulates all source code which implements the Vulkan open
@@ -55,7 +53,8 @@ Current directory layout:
 
 The two long running branches are:
 
-* `stable`: This branch is merged to on a successful nightly run and should not be merged into directly.
+* `stable`: This branch is merged to on a successful nightly run and should not
+  be merged into directly.
 * `main`: This is the main branch for on-going development.
 
 > No force pushes are allowed on these two branches.
@@ -94,13 +93,13 @@ configuration file:
 To run `cmakelint` using the `.cmakelintrc` configuration file in the root of
 the oneAPI Construction Kit repository:
 
-```console
-$ cmakelint --config=.cmakelintrc <file> [<file>] ...
+```sh
+cmakelint --config=.cmakelintrc <file> [<file>] ...
 ```
 
 ### Python Style
 
-All the Python code in the oneAPI Construction Kit *must* be formatted using
+All the Python code in the oneAPI Construction Kit _must_ be formatted using
 [`yapf`][yapf] set to the [pep8][pep8] style (default). As with `clang-format`
 it's not perfect in all situations and occasionally does something baffling,
 but the consistency mostly keeps the holy warriors at bay.
@@ -118,7 +117,6 @@ issues and suggested solutions.
 
 [yapf]: https://pypi.org/project/yapf/
 [pep8]: https://www.python.org/dev/peps/pep-0008/
-[isort]: https://pypi.org/project/isort/
 [pylint]: https://pypi.org/project/pylint/
 [flake8]: https://pypi.org/project/flake8/
 [future]: https://pypi.org/project/future/
@@ -128,9 +126,9 @@ issues and suggested solutions.
 The Khronos ICD allows multiple OpenCL implementations to coexist in the same
 system, these implementations will usually be exposed to the OpenCL user as
 individual `cl_platform_id`'s. To inform the system's OpenCL ICD where to find
-the oneAPI Construction Kit OpenCL driver it needs to be registered. Note that we also
-support fetching and building an ICD within the toolkit through cmake options as described
-[here](/source/cl/icd-loader.rst).
+the oneAPI Construction Kit OpenCL driver it needs to be registered. Note that
+we also support fetching and building an ICD within the toolkit through cmake
+options as described [here](/source/cl/icd-loader.rst).
 
 ### Linux Registration
 
@@ -150,8 +148,8 @@ For Windows the ICD inspects the registry so to register the oneAPI Construction
 Kit OpenCL driver a new registry entry must be added. Add a `REG_DWORD` value
 to the appropriate registry path.
 
-*   32-bit - `HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Khronos\OpenCL\Vendors`
-*   64-bit - `HKEY_LOCAL_MACHINE\SOFTWARE\Khronos\OpenCL\Vendors`
+* 32-bit - `HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Khronos\OpenCL\Vendors`
+* 64-bit - `HKEY_LOCAL_MACHINE\SOFTWARE\Khronos\OpenCL\Vendors`
 
 The `REG_DWORD` value's name should be the path to the oneAPI Construction Kit
 OpenCL driver and its data should be `0`.
@@ -205,134 +203,159 @@ code itself see our [CMake Development](cmake) documentation.
 The flags used when invoking CMake on the command line which are used in the
 examples shown later in this document.
 
-- `-B<path>`: An undocumented option which creates a build directory `<path>` if
+* `-B<path>`: An undocumented option which creates a build directory `<path>` if
   it does not already exist then configures the build system in that directory.
   It is important to specify the source directory position argument otherwise
   you will see unexpected behaviour.
-- `-G<generator>`: Specifies the build system generator to use, when not
+* `-G<generator>`: Specifies the build system generator to use, when not
   specified the platform specific default generator is used.
-- `-D<variable>=<value>`: Defines a CMake option stored in `CMakeCache.txt` to
+* `-D<variable>=<value>`: Defines a CMake option stored in `CMakeCache.txt` to
   control how CMake configures the build directory.
 
 ### CMake Options
 
 The builtin CMake options used when invoking CMake on the command line.
 
-- `CMAKE_BUILD_TYPE`: CMake provides a default set of build types:
-  - `Debug`: Enable debug symbols and disable optimizations.
-  - `Release`: Enable optimizations and disable assertions.
-  - `RelWithDebInfo`: Enable debug symbols, optimizations, and disable
+* `CMAKE_BUILD_TYPE`: CMake provides a default set of build types:
+  * `Debug`: Enable debug symbols and disable optimizations.
+  * `Release`: Enable optimizations and disable assertions.
+  * `RelWithDebInfo`: Enable debug symbols, optimizations, and disable
     assertions.
-  - `MinSizeRel`: Enable size optimizations and disable assertions.
-- `CMAKE_INSTALL_PREFIX`: Path to write files produced by the `install` target.
-- `CMAKE_TOOLCHAIN_FILE`: Path to a CMake script, used to cross-compile a
+  * `MinSizeRel`: Enable size optimizations and disable assertions.
+* `CMAKE_INSTALL_PREFIX`: Path to write files produced by the `install` target.
+* `CMAKE_TOOLCHAIN_FILE`: Path to a CMake script, used to cross-compile a
   project, which defines variables that inform CMake where the compiler,
   assembler, linker, etc. for the target platform reside.
 
 #### oneAPI Construction Kit CMake Options
 
-- `CMAKE_BUILD_TYPE`: In addition to the defaults provided by CMake the oneAPI
+* `CMAKE_BUILD_TYPE`: In addition to the defaults provided by CMake the oneAPI
   Construction Kit extends the builtin build types:
-  - `ReleaseAssert`: Enable assertions is a Release build.
-- `CA_USE_SANITIZER`: Enable support for dynamic analysis sanitizers:
-  - `Address`: Enable [AddressSanitizer][asan] dynamic analysis for
+
+  * `ReleaseAssert`: Enable assertions is a Release build.
+
+* `CA_USE_SANITIZER`: Enable support for dynamic analysis sanitizers:
+
+  * `Address`: Enable [AddressSanitizer][asan] dynamic analysis for
     memory errors.
-  - `Thread`: Enable [ThreadSanitizer][tsan] dynamic analysis for data
+  * `Thread`: Enable [ThreadSanitizer][tsan] dynamic analysis for data
     races.
-  - `Undefined`: Enable [UndefinedBehaviourSanitizer][ubsan] dynamic
+  * `Undefined`: Enable [UndefinedBehaviourSanitizer][ubsan] dynamic
     analysis for undefined behaviour. This is currently broken with gcc; use
     clang for working ubsan support (CA-4237).
-  - `Address,Undefined`: Enable combined [AddressSanitizer][asan] and
+  * `Address,Undefined`: Enable combined [AddressSanitizer][asan] and
     [UndefinedBehaviourSanitizer][ubsan] dynamic analysis.
-  - `Fuzzer`: Enable [libFuzzer][libfuzzer] instrumentation.
-- `CA_LLVM_INSTALL_DIR`: Tells the oneAPI Construction Kit to use the LLVM
+  * `Fuzzer`: Enable [libFuzzer][libfuzzer] instrumentation.
+
+* `CA_LLVM_INSTALL_DIR`: Tells the oneAPI Construction Kit to use the LLVM
   and Clang installation that can be found at this prefix. The LLVM and Clang
   installations must be development installations i.e. they must contain the
   relevant llvm headers and support tools, and their version must match
   a supported LLVM version.
-- `CA_ENABLE_API`: Semi-colon separated list of APIs to enable. Valid values
+
+* `CA_ENABLE_API`: Semi-colon separated list of APIs to enable. Valid values
   are `cl` for OpenCL, and `vk` for Vulkan. Enabling an API when an optional
   component is not present dependent on license agreement will result in a CMake
   error. The default is `cl;vk`.
-- `CA_BUILD_32_BITS`: Enable compiling in 32-bit mode on Linux, this requires
+
+* `CA_BUILD_32_BITS`: Enable compiling in 32-bit mode on Linux, this requires
   to have the proper 32-bit toolchain installed. When used in combination with
   an external LLVM, the external LLVM also needs to be built in 32-bit mode.
-- `CA_EXTERNAL_BUILTINS_DIR` is used to specify the directory
+
+* `CA_EXTERNAL_BUILTINS_DIR` is used to specify the directory
   containing pre-generated builtins. This option is mandatory when cross
   compiling. It is usually set to the `modules/builtins` directory in the build
   directory of a host oneAPI Construction Kit build, but can be set to another
   directory as long as it contains generated builtins.
-- `CA_EXTERNAL_BUILTINS`: This option is used to specify whether or not builtins
+
+* `CA_EXTERNAL_BUILTINS`: This option is used to specify whether or not builtins
   should be generated. If it is set to `OFF`, `CA_EXTERNAL_BUILTINS_DIR` must be
   provided to indicate which builtins to use instead. This option is set to `ON`
   for cross compile builds.
-- `CA_BUILTINS_TOOLS_DIR`: This options makes it possible to specify which tools
+
+* `CA_BUILTINS_TOOLS_DIR`: This options makes it possible to specify which tools
   to use in order the build the builtins, executables for the correct versions
   of `clang` and `llvm-link` must be found in this directory. This can also be
   used for cross-compile builds in which case the tools must work on the host.
-- `CA_RUNTIME_COMPILER_ENABLED`: This option determines whether the oneAPI
+
+* `CA_RUNTIME_COMPILER_ENABLED`: This option determines whether the oneAPI
   Construction Kit is built with or without a runtime compiler (LLVM). It
   defaults to `ON`. Without a runtime compiler, only pre-compiled binaries can
   be run, and the oneAPI Construction Kit implements an embedded profile.
-- `CA_CLANG_TIDY_FLAGS`: This option specifies a semi-colon separated list of
+
+* `CA_CLANG_TIDY_FLAGS`: This option specifies a semi-colon separated list of
   additional flags which are passed to `clang-tidy` when invoking `tidy`
   targets.
-- `CA_HOST_ENABLE_BUILTIN_KERNEL`: This option enables builtin kernel support
+
+* `CA_HOST_ENABLE_BUILTIN_KERNEL`: This option enables builtin kernel support
   within the host target. By default, it is set to `OFF`. If enabled this will
   report that host supports builtin kernels and will also enable two test
   kernels that are used by UnitMux and UnitCL to verify functionality.
-- `CA_HOST_ENABLE_FP64`: This option determines whether host is built with or
+
+* `CA_HOST_ENABLE_FP64`: This option determines whether host is built with or
   without double support. By default, it is only enabled on non-Windows
   platforms.
-- `CA_HOST_ENABLE_FP16`: This option determines whether host is built with or
+
+* `CA_HOST_ENABLE_FP16`: This option determines whether host is built with or
   without half support. It is disabled by default since we can't detect if this
   feature is natively supported by hardware, which is a requirement.
-- `CA_HOST_ENABLE_PAPI_COUNTERS`: This option enables performance counter
+
+* `CA_HOST_ENABLE_PAPI_COUNTERS`: This option enables performance counter
   support in host via the Mux `query_pool` API and the PAPI performance counter
   API. Requires the PAPI library and headers to be installed on the system.
   Currently this only works on Linux.
-- `CA_HOST_CROSS_COMPILERS`: This option specifies a semi-colon separated list
+
+* `CA_HOST_CROSS_COMPILERS`: This option specifies a semi-colon separated list
   of compilers registered to enable offline or cross-compilation for non-native
   host CPU's, e.g. for Linux kernel cross-compile `arm`, `aarch64`, `x86`,
   `x86_64` may be specified, alternatively set to `all` to enable all backends
   which were built during the LLVM install.
-- `CMAKE_SKIP_RPATH`: On Linux the oneAPI Construction Kit specifies a relative
+
+* `CMAKE_SKIP_RPATH`: On Linux the oneAPI Construction Kit specifies a relative
  `RPATH` for all targets when they are installed using `CMAKE_INSTALL_RPATH`,
   this ensures that when the `install` target is invoked the user does not need
   to specify `LD_LIBRARY_PATH` to correctly execute a test binary in order to
   use the installed OpenCL or Vulkan library. Do disable this behaviour set
   `-DCMAKE_SKIP_RPATH=ON` when configuring CMake in build directory.
 
-- `CA_HOST_TARGET_<arch>_CPU`: This option is used by the `host`` target to
-  optimize for performance on a given CPU. `arch` should be a capitalized
-  version of the `host` target architecture e.g. `X86_64`, `RISCV64` or
-  `AARCH64`. If set to "native" host will optimize for the CPU being used to
-  compile it. Otherwise a CPU name can be provided, for example "skylake", but
-  be warned that this string will be passed directly to the llvm backend so make
-  sure it's a valid CPU name. Information about your host CPU can be found by
-  running `llc --version`, and a list of host CPUs supported by your installed
-  version of LLVM can be found by running `llc --march=[your-arch] --mcpu=help`.
-  
-  Be aware that if `host` is compiled with this option set, running it on a
-  different CPU from the one specified (or the one compiled with if "native" was
-  specified) isn't supported and bad things may happen. When the oneAPI
-  Construction Kit is built in debug mode, the environment variable
-  `CA_HOST_TARGET_CPU` is also respected across all `host` targets, which can
-  help track down codegen differences among different machine targets. The
-  caveats above apply, and this may result in an illegal instruction crash if
-  your CPU doesn't support the generated instructions.
+* `CA_HOST_TARGET_<arch>_CPU`, `CA_HOST_TARGET_<arch>_FEATURES`: These options
+  are used by the `host` target to optimize for performance on a given CPU.
+  `arch` should be a capitalized version of the `host` target architecture e.g.
+  `X86_64`, `RISCV64` or `AARCH64`.
 
-- `CA_USE_SPLIT_DWARF`: When building with gcc, enable split dwarf debuginfo.
+  `CPU` can be set to `native` to optimize for the CPU being used to compile.
+  Otherwise a CPU name can be provided, e.g. `skylake`. This string will be
+  passed directly to the LLVM backend; it has to be a valid CPU name. A list of
+  CPUs supported by LLVM can be found by running `clang -mcpu=help`.
+
+  `FEATURES` should be a comma-separated list of features preceded by either `+`
+  or `-` to enable or disable them, e.g. `+v,-zfencei`. The features are the
+  same as those supported by the `-mattr` option in LLVM tools such as `llc` and
+  `opt` and add to the features supported by default.
+
+  If no `CPU` or `FEATURES` are specified, kernels will be compiled to run on
+  any CPU that meets our minimal assumptions.
+  
+  Beware that if `host` is compiled with this option set, running kernels on a
+  CPU that is not compatible with the one specified (or the one compiled with if
+  `native` was specified) is not supported and may result in attempts to execute
+  instructions not supported by that CPU.
+
+* `CA_USE_SPLIT_DWARF`: When building with gcc, enable split dwarf debuginfo.
   This significantly reduces binary size (especially when static linking) and
   speeds up the link step. Requires a non-ancient toolchain.
-- `CA_CL_TEST_STATIC_LIB`: Forces all of our CL executable targets to link the
+
+* `CA_CL_TEST_STATIC_LIB`: Forces all of our CL executable targets to link the
   static CL library rather than the normal dynamic one, to force testing with
   the static library.
-- `CA_MUX_TARGETS_TO_ENABLE`: A `;` separated list of `mux` targets that should
+
+* `CA_MUX_TARGETS_TO_ENABLE`: A `;` separated list of `mux` targets that should
   be enabled. By default this is set to the `host` target.
-- `CA_EXTERNAL_MUX_TARGET_DIRS`: A `;` separated list of external `mux` targets that
+
+* `CA_EXTERNAL_MUX_TARGET_DIRS`: A `;` separated list of external `mux` targets that
  should be built. The base directory name must be that of the target.
-- `CA_EXTERNAL_MUX_COMPILER_DIRS`: A `;` separated list of external
+
+* `CA_EXTERNAL_MUX_COMPILER_DIRS`: A `;` separated list of external
   `compiler` targets that should be built. The base directory name must be that of
    the target.
 
@@ -414,9 +437,13 @@ cmake llvm -GNinja \
   -Bbuild-x86_64 \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=$PWD/build-x86_64/install \
-  -DLLVM_ENABLE_PROJECTS=clang \
-  -DLLVM_TARGETS_TO_BUILD='X86;ARM;AArch64'
+  -DLLVM_ENABLE_PROJECTS=clang;lld \
+  -DLLVM_TARGETS_TO_BUILD='X86;ARM;AArch64;RISCV'
 ```
+
+Note that some of the above LLVM targets could be dropped depending on the
+target architecture. `lld` is only needed for most non "host" targets e.g.
+`refsi`.
 
 Now the build directory is configured, build the `install` target.
 
@@ -428,22 +455,19 @@ ninja -C build-x86_64 install
 
 Configure the build directory with CMake, ensuring to enable the `clang`
 project using `LLVM_ENABLE_PROJECTS`. Run this command from the root of the
-repository. The `LLVM_TEMPORARILY_ALLOW_OLD_TOOLCHAIN` variable is needed when
-building LLVM version 8.0 or later on Visual Studio toolchains prior to MSVC
-version 19.1.
+repository.
 
 ```bat
-cmake llvm -G"Visual Studio 15 2017 Win64" ^
+cmake llvm -G"Visual Studio 16 2019 Win64" ^
   -Bbuild-x86_64 ^
   -DCMAKE_BUILD_TYPE=Release ^
   -DCMAKE_INSTALL_PREFIX=%CD%\build-x86_64\install ^
   -DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" ^
   -DLLVM_ENABLE_PROJECTS=clang ^
-  -DLLVM_TEMPORARILY_ALLOW_OLD_TOOLCHAIN=ON
 ```
 
 > Note that using the Ninja generator, `-GNinja`, on Windows may be preferable
-> for improve compilation times.
+> for improve compilation times. `Ninja` can also be used in conjunction with the IDE.
 
 Now the build directory is configured, build the `install` target. This can be
 done by opening the `llvm.sln` solution in Visual Studio and building the
@@ -515,6 +539,9 @@ cmake . -GNinja \
   -DCA_LLVM_INSTALL_DIR=$LLVMInstall
 ```
 
+This will build a `host` target, which will run device code on the same machine
+that the oneAPI Construction Kit runs on.
+
 Now the build directory is configured, build the `install` target.
 
 ```sh
@@ -547,7 +574,7 @@ cmake . -GNinja \
 ```
 
 Now the build directory is configured, you can build the oneAPI Construction Kit
-and run the dchecks as above.
+and run the checks as above.
 
 #### Compiling oneAPI Construction Kit on Windows
 
@@ -555,7 +582,7 @@ To configure a oneAPI Construction Kit build run the following command from the
 root of the oneAPI Construction Kit repository.
 
 ```bat
-cmake . -G"Visual Studio 15 2017 Win64" ^
+cmake . -G"Visual Studio 16 2019 Win64" ^
   -Bbuild-x86_64 ^
   -DCMAKE_BUILD_TYPE=Release ^
   -DCMAKE_INSTALL_PREFIX=%CD%\build-x86_64\install ^
@@ -591,7 +618,7 @@ point to a Release install of LLVM, here `%LLVMReleaseInstall%` specifies the
 path to the root of the install.
 
 ```bat
-cmake . -G"Visual Studio 15 2017 Win64" ^
+cmake . -G"Visual Studio 16 2019 Win64" ^
   -Bbuild-x86_64-Debug ^
   -DCMAKE_BUILD_TYPE=Debug ^
   -DCMAKE_INSTALL_PREFIX=%CD%\build-x86_64-Debug\install ^
@@ -656,7 +683,7 @@ The configure the oneAPI Construction Kit build without LLVM run the following
 command from the root of the oneAPI Construction Kit repository.
 
 ```bat
-cmake . -G"Visual Studio 15 2017 Win64" ^
+cmake . -G"Visual Studio 16 2019 Win64" ^
   -Bbuild-offline ^
   -DCMAKE_BUILD_TYPE=Release ^
   -DCMAKE_INSTALL_PREFIX=%CD%\build-offline\install ^
@@ -702,6 +729,8 @@ cmake --build %CD%\build-offline --target install --config Release
 > Note: MinGW must be installed with structured exception handling (SEH) and
 > POSIX threads. The `choco` command is
 > `choco install mingw -y -params "/exception:seh /threads:posix"`.
+
+Note that this is not part of the regular testing of OCK, but should work.
 
 ## Cross-compiling
 
@@ -755,6 +784,7 @@ cmake . -GNinja \
   -DLLVM_HOST_TRIPLE=arm-unknown-linux-gnu \
   -DLLVM_DEFAULT_TARGET_TRIPLE=arm-unknown-linux-gnu \
   -DLLVM_ENABLE_ZLIB=OFF \
+  -DLLVM_ENABLE_ZSTD=OFF \
   -DLLVM_TABLEGEN=$LLVMNativeInstall/bin/llvm-tblgen \
   -DCLANG_TABLEGEN=$LLVMNativeBuild/bin/clang-tblgen
 ```
@@ -782,6 +812,7 @@ cmake . -GNinja \
   -DLLVM_HOST_TRIPLE=aarch64-unknown-linux-gnu \
   -DLLVM_DEFAULT_TARGET_TRIPLE=aarch64-unknown-linux-gnu \
   -DLLVM_ENABLE_ZLIB=OFF \
+  -DLLVM_ENABLE_ZSTD=OFF \
   -DLLVM_TABLEGEN=$LLVMNativeInstall/bin/llvm-tblgen \
   -DCLANG_TABLEGEN=$LLVMNativeBuild/bin/clang-tblgen
 ```
@@ -865,8 +896,8 @@ ninja -C build-aarch64 check
 #### Cross-compiling the oneAPI Construction Kit for Windows with the MinGW toolchain
 
 oneAPI Construction Kit for Windows can be built on Linux using MinGW. This
-requires LLVM that has been built with MinGW. Note that offline-compiled
-kernels cannot be built, because there is no way to run the `clc` that is built.
+requires LLVM that has been built with MinGW. Note that MinGW kernels cannot be
+compiled offline using an external clc, so we disable their tests.
 
 ```console
 cmake -GNinja \
@@ -881,6 +912,8 @@ cmake -GNinja \
 
 cmake --build build-mingw --target ComputeAorta
 ```
+
+This is not part of the regular testing, but should work.
 
 ## Testing
 
@@ -1008,13 +1041,18 @@ gotchas:
 
 ### Testing oneapi-construction-kit application examples using official Intel oneAPI Base Toolkit
 
-Download the official Intel OneAPI Base Toolkit following the instructions mentioned [here](../README.md#compiling-oneapi-samples-vector-add-using-official-intel-oneapi-base-toolkit).
+Download the official Intel OneAPI Base Toolkit following the instructions
+mentioned [here](../README.md#compiling-oneapi-samples-vector-add-using-official-intel-oneapi-base-toolkit).
 
 To compile the tests follow the steps below:
 
 ```sh
 mkdir build_tests
-cmake -GNinja -Bbuild_tests -DCMAKE_CXX_COMPILER=/path/to/intel_oneapi/bin/clang++ /path/to/oneapi-construction-kit/examples/applications -DOpenCL_LIBRARY=/path/to/build/lib/libCL.so -DOpenCL_INCLUDE_DIR=/path/to/build-riscv/include
+cmake -GNinja -Bbuild_tests \
+  -DCMAKE_CXX_COMPILER=/path/to/intel_oneapi/bin/clang++ \
+  /path/to/oneapi-construction-kit/examples/applications \
+  -DOpenCL_LIBRARY=/path/to/build/lib/libCL.so \
+  -DOpenCL_INCLUDE_DIR=/path/to/build-riscv/include
 ninja -C build_tests
 ```
 
@@ -1035,13 +1073,15 @@ export SYCL_CONFIG_FILE_NAME=""
 ```
 
 The tests can be run using `ctest` command.
+
 ```sh
 cd build_tests
 ctest
 ```
 
 The generated output should be as follows:
-```sh
+
+```plain text
 Test project /path/to/build_tests
     Start 1: simple_vector_add
 1/7 Test #1: simple_vector_add ..................   Passed    0.06 sec
@@ -1074,11 +1114,27 @@ options without having to modify the source.
   options in the same manner as `CA_EXTRA_COMPILE_OPTS`.
 * `CA_LLVM_OPTIONS`: This environment variable allows the injection of LLVM
   flags **only** when either `NDEBUG` is not defined (i.e. `Debug` and
-  `ReleaseAssert` build configurations) or when the
-  `CA_ENABLE_LLVM_OPTIONS_IN_RELEASE` option is set in CMake. See
-  [below](#debugging-the-llvm-compiler) for example of how this can be used.
+  `ReleaseAssert` build configurations) or when the cmake variables
+  `CA_ENABLE_LLVM_OPTIONS_IN_RELEASE` or `CA_ENABLE_DEBUG_SUPPORT` is set in
+  CMake. See [below](#debugging-the-llvm-compiler) for example of how this can
+  be used.
 * `CA_HOST_NUM_THREADS`: Sets the maximum number of threads the `host` device
   will create. `host` may create fewer threads than this value.
+* `CA_HOST_TARGET_CPU`, `CA_HOST_TARGET_FEATURES`: These environment variables
+  can be used in debug builds to override the default CPU and features. They
+  behave the same way as the `CA_HOST_TARGET_<arch>_CPU` and
+  `CA_HOST_TARGET_<arch>_FEATURES` CMake options and the same caveats about
+  `"native"` apply here.
+* `CA_HOST_DEFERRED_COMPILATION`. This allows overriding of whether the `host`
+  device supports deferring compilation, often known as jitting. Setting to `0`
+  will disable deferred compilation, setting to `1` will enable it. If unset,
+  deferred compilation is enabled except on targets where it is known not to
+  work, such as RISC-V. Only available with debug support.
+* `CA_HOST_DUMP_ASM`. This supports dumping of generated assembly. Requires a
+  target which disables deferred compilation, such as `RISC-V` or setting
+  `CA_HOST_DEFERRED_COMPILATION` to 0. This should be set to `1` or unset and
+  handling of other values is subject to change. Only available with debug
+  support.
 
 ## Debugging the LLVM compiler
 
@@ -1107,7 +1163,7 @@ compiler pass. When given a [pass name](#pass-names) or comma-separated list of
 pass names, it prints the IR before or after every instance of those passes, on
 every unit of IR:
 
-```
+```llvm
 > CA_LLVM_OPTIONS=-print-after=early-cse,mem2reg ...
 
 *** IR Dump After EarlyCSEPass on foo ***
@@ -1152,7 +1208,7 @@ entry:
 The two options can be combined, e.g., to better inspect the result of a
 specific pass:
 
-```
+```llvm
 > CA_LLVM_OPTIONS="-print-before=early-cse -print-after=early-cse" ...
 
 *** IR Dump Before EarlyCSEPass on bar ***
@@ -1199,7 +1255,7 @@ to the LLVM source code) at `llvm/lib/Passes/PassRegistry.def`.
 Since LLVM ComputeMux use the same style of pass registration, both contain
 lines such as:
 
-```
+```c++
 MODULE_PASS("always-inline", AlwaysInlinerPass())
 
 MODULE_PASS("add-sched-params", utils::AddSchedulingParametersPass())
@@ -1232,7 +1288,7 @@ This option works like
 [-print-after-all](#-print-after-all-and--print-before-all) but only when the
 pass makes a change to the IR.
 
-```
+```llvm
 *** IR Dump After CoroEarlyPass on [module] omitted because no change ***
 *** IR Dump After LowerExpectIntrinsicPass on bar omitted because no change ***
 *** IR Dump After SimplifyCFGPass on bar omitted because no change ***
@@ -1275,7 +1331,7 @@ invalid IR.
 This option gives an overview of each compiler pipeline, listing the passes and
 analyses running at each point.
 
-```
+```plain text
 > CA_LLVM_OPTIONS=-debug-pass-manager
 
 Running pass: ForceFunctionAttrsPass on [module]
@@ -1289,15 +1345,18 @@ Running pass: compiler::StripFastMathAttrs on bar (24 instructions)
 Values can be passed to this option to control its behaviour:
 
 * `-debug-pass-manager=quiet` - Skips printing of analyses
-  ```
+
+  ```plain text
   Running pass: ForceFunctionAttrsPass on [module]
   Running pass: compiler::SoftwareDivisionPass on bar (24 instructions)
   Running pass: compiler::StripFastMathAttrs on bar (24 instructions)
   ; <and on>
   ```
+
 * `-debug-pass-manager=verbose` - Prints additional information about pass
   managers and adaptors.
-  ```
+
+  ```plain text
   Running pass: ForceFunctionAttrsPass on [module]
   Running pass: ModuleToFunctionPassAdaptor on [module]
     Running analysis: InnerAnalysisManagerProxy<llvm::FunctionAnalysisManager, llvm::Module> on [module]
@@ -1314,7 +1373,7 @@ Prints timing information summaries at the end of each compiler pipeline, with
 a breakdown of how long each individual pass took. This is useful for
 understanding compile-time performance issues.
 
-```
+```plain text
 > CA_LLVM_OPTIONS=-time-passes
 
 ===-------------------------------------------------------------------------===
@@ -1344,13 +1403,13 @@ This can also be supported in release mode if the CMake option
 
 On Bash or similar shells environment variables can be set as follows:
 
-```
+```sh
 export CA_OCL_DEBUG_PRINT_KERNELS=1
 ```
 
 On Windows console:
 
-```
+```batch
 SET CA_OCL_DEBUG_PRINT_KERNELS=1
 ```
 
@@ -1372,7 +1431,7 @@ kernel in different files, if the kernel is compiled multiple times.
 
 For Linux hosts which support perf hardware events, we can get various metrics
 by setting the environment variable `CA_ENABLE_PERF_INTERFACE=1` and then
-running the executable with perf. Since the kernel is being *JIT'ed*, on Linux
+running the executable with perf. Since the kernel is being _JIT'ed_, on Linux
 hosts.
 
 1. The compiled kernel object will be placed in `/tmp/perf-$\{pid\}.o`
@@ -1407,7 +1466,7 @@ CA_ENABLE_PERF_INTERFACE=1 perf record \
 
 After recording the profile, you can view the statistics using perf report
 
-> **Note :** Be aware that if you run  *perf report* with the *-a* option to
+> **Note :** Be aware that if you run _perf report_ with the _-a_ option to
 > enable profiling on all the CPUs,  all processes running on the OS will be
 > profiled and percentage calculations will take all of them into account. This
 > is most likely **Not** what you want.
@@ -1498,8 +1557,8 @@ ccache -C
 
 > Unfortunately it is not possible to cache all the oneAPI Construction Kit build
 > steps such as building bitcode for the [builtins](modules/builtins.md) module,
-> this is due to `ccache` not being aware of the compiler flags passed to `clang` to
-> generate these outputs.
+> this is due to `ccache` not being aware of the compiler flags passed to `clang`
+> to generate these outputs.
 
 ## Enhanced GDB Debugging
 
@@ -1514,7 +1573,7 @@ pretty printers for the types it defines, these can be found in
 `modules/cargo/scripts/gdb/prettyprinters.py`. To enable them, issue the
 following command in a [GDB][gdb] session:
 
-```
+```plain text
 (gdb) source modules/cargo/scripts/gdb/prettyprinters.py
 ```
 
@@ -1557,25 +1616,25 @@ tested value.
 2) Build the oneAPI Construction Kit and the benchmark you'll be using to
    benchmark the driver (for example, a benchmark from PerfCL).
 
-3) Clone the Flamegraphs repository: https://github.com/brendangregg/FlameGraph
+3) Clone the Flamegraphs repository: <https://github.com/brendangregg/FlameGraph>
 
 4) cd to your benchmark, then use the `perf` tool to execute your benchmark and
    record some stack samples:
 
-  `perf record -g --call-graph dwarf ./jacobi1D` (if running the `jacobi1D`
+   `perf record -g --call-graph dwarf ./jacobi1D` (if running the `jacobi1D`
     benchmark from PerfCL)
 
-  Don't forget to ensure the the oneAPI Construction Kit CL driver is being
-  loaded correctly by the ICD, or you use `OCL_ICD_FILENAMES` to override the
-  CL driver:
+   Don't forget to ensure the the oneAPI Construction Kit CL driver is being
+   loaded correctly by the ICD, or you use `OCL_ICD_FILENAMES` to override the
+   CL driver:
 
-  `export OCL_ICD_FILENAMES=<path-to-install>/lib/libCL.so`
+   `export OCL_ICD_FILENAMES=<path-to-install>/lib/libCL.so`
 
-  * TIP: `perf script` is extremely slow on Debian and Ubuntu because it relies
-    on forking to `addr2line` for each stack captured (hundreds of MB's of data).
-    If you build `perf` from source with `libbfd` installed, it will be up to
-    60x faster. See https://eighty-twenty.org/2021/09/09/perf-addr2line-speed-improvement
-    for more information.
+   * TIP: `perf script` is extremely slow on Debian and Ubuntu because it relies
+     on forking to `addr2line` for each stack captured (hundreds of MB's of data).
+     If you build `perf` from source with `libbfd` installed, it will be up to
+     60x faster. See <https://eighty-twenty.org/2021/09/09/perf-addr2line-speed-improvement>
+     for more information.
 
 5) Follow the instructions in the FlameGraph repository to generate a nice SVG:
 

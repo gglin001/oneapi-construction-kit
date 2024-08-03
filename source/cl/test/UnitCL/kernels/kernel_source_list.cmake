@@ -238,6 +238,7 @@ set(KERNEL_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/printf.20_multiple_kernels.cl
   ${CMAKE_CURRENT_SOURCE_DIR}/printf.21_float_with_double_conversion.cl
   ${CMAKE_CURRENT_SOURCE_DIR}/printf.22_half_with_double_conversion.cl
+  ${CMAKE_CURRENT_SOURCE_DIR}/printf.24_empty_string_param.cl
   ${CMAKE_CURRENT_SOURCE_DIR}/regression.01_pointer_to_long_cast.cl
   ${CMAKE_CURRENT_SOURCE_DIR}/regression.02_work_dim.cl
   ${CMAKE_CURRENT_SOURCE_DIR}/regression.03_shuffle_cast.cl
@@ -393,6 +394,8 @@ set(KERNEL_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/regression.106_varying_lcssa_phi.cl
   ${CMAKE_CURRENT_SOURCE_DIR}/regression.107_byval_struct_align.cl
   ${CMAKE_CURRENT_SOURCE_DIR}/regression.108_absdiff_int.cl
+  ${CMAKE_CURRENT_SOURCE_DIR}/regression.109_libm_native_double_input.cl
+  ${CMAKE_CURRENT_SOURCE_DIR}/regression.110_libm_native_half_input.cl
   ${CMAKE_CURRENT_SOURCE_DIR}/spirv.01_copy.cl
   ${CMAKE_CURRENT_SOURCE_DIR}/spirv.02_async_copy.cl
   ${CMAKE_CURRENT_SOURCE_DIR}/spirv.03_test_atomic_add.cl

@@ -4,13 +4,15 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '.github/workflows/create_llvm.yml'
   workflow_dispatch:
 
 jobs:
   create_llvm_cache:
     strategy:
       matrix:
-        version: [16, 17]
+        version: [17, 18]
         os: [ubuntu-22.04]
         build_type: [Release, RelAssert]
         include:
@@ -58,6 +60,7 @@ jobs:
               -DLLVM_ENABLE_DIA_SDK=OFF
               -DCMAKE_INSTALL_PREFIX=llvm_install
               -DLLVM_ENABLE_ZLIB=FALSE
+              -DLLVM_ENABLE_ZSTD=FALSE
               -DLLVM_ENABLE_Z3_SOLVER=FALSE
               -DLLVM_ENABLE_PROJECTS="clang;lld"
               -DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64;RISCV"

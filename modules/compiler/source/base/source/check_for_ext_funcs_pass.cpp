@@ -17,6 +17,7 @@
 #include <base/check_for_ext_funcs_pass.h>
 #include <llvm/IR/DiagnosticPrinter.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/Module.h>
 
 using namespace llvm;
 
@@ -36,7 +37,7 @@ PreservedAnalyses compiler::CheckForExtFuncsPass::run(Module &M,
                                                       ModuleAnalysisManager &) {
   for (const auto &F : M) {
     auto FName = F.getName();
-    if (F.isDeclaration() && !F.isIntrinsic() && !FName.equals("printf") &&
+    if (F.isDeclaration() && !F.isIntrinsic() && FName != "printf" &&
         !FName.starts_with("_Z") && !FName.starts_with("__")) {
       M.getContext().diagnose(DiagnosticInfoExternalFunc(FName));
     }

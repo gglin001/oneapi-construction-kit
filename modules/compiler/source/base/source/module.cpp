@@ -44,6 +44,7 @@
 #include <clang/Serialization/ASTReader.h>
 #include <clang/Serialization/ASTRecordReader.h>
 #include <compiler/limits.h>
+#include <compiler/utils/align_module_structs_pass.h>
 #include <compiler/utils/encode_builtin_range_metadata_pass.h>
 #include <compiler/utils/llvm_global_mutex.h>
 #include <compiler/utils/lower_to_mux_builtins_pass.h>
@@ -71,6 +72,7 @@
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Target/TargetMachine.h>
+#include <llvm/TargetParser/Triple.h>
 #include <llvm/Transforms/IPO.h>
 #include <llvm/Transforms/IPO/AlwaysInliner.h>
 #include <llvm/Transforms/IPO/ForceFunctionAttrs.h>
@@ -88,7 +90,6 @@
 #include <llvm/Transforms/Vectorize/SLPVectorizer.h>
 #include <multi_llvm/llvm_version.h>
 #include <multi_llvm/multi_llvm.h>
-#include <multi_llvm/triple.h>
 #include <mux/mux.hpp>
 #include <spirv-ll/module.h>
 
@@ -101,7 +102,7 @@
 #include <sstream>
 #include <unordered_set>
 
-#if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(_MSC_VER)
 #define PATH_SEPARATOR "\\"
 #else
 #define PATH_SEPARATOR "/"
@@ -388,6 +389,12 @@ Result BaseModule::parseOptions(cargo::string_view input_options,
   // -cl-strict-aliasing is deprecated in OpenCL 1.1, so accept the argument,
   // but do nothing with the result (i.e. do not record it in options).
   bool cl_strict_aliasing = false;
+
+  // -cl-uniform-work-group-size and -cl-no-subgroup-ifp are accepted but at the
+  // moment we just ignore so don't record it in the options.
+  bool cl_uniform_work_group_size = false;
+  bool cl_no_subgroup_ifp = false;
+
   const cargo::string_view spir_std;
   const cargo::string_view x;
 
@@ -472,6 +479,13 @@ Result BaseModule::parseOptions(cargo::string_view input_options,
       return Result::OUT_OF_MEMORY;
     }
     if (parser.add_argument({"-cl-strict-aliasing", cl_strict_aliasing})) {
+      return Result::OUT_OF_MEMORY;
+    }
+    if (parser.add_argument(
+            {"-cl-uniform-work-group-size", cl_uniform_work_group_size})) {
+      return Result::OUT_OF_MEMORY;
+    }
+    if (parser.add_argument({"-cl-no-subgroup-ifp", cl_no_subgroup_ifp})) {
       return Result::OUT_OF_MEMORY;
     }
 
@@ -891,15 +905,8 @@ void BaseModule::populateCodeGenOpts(clang::CodeGenOptions &codeGenOpts) const {
 
   codeGenOpts.EmitOpenCLArgMetadata = options.kernel_arg_info;
   if (options.debug_info) {
-#if LLVM_VERSION_GREATER_EQUAL(17, 0)
     codeGenOpts.setDebugInfo(llvm::codegenoptions::FullDebugInfo);
-#else
-    codeGenOpts.setDebugInfo(clang::codegenoptions::FullDebugInfo);
-#endif
   }
-#if LLVM_VERSION_LESS(17, 0)
-  codeGenOpts.OpaquePointers = true;
-#endif
 }
 
 void BaseModule::addDefaultOpenCLPreprocessorOpts(
@@ -1078,8 +1085,7 @@ void BaseModule::setDefaultOpenCLLangOpts(clang::LangOptions &lang_opts) const {
 std::string BaseModule::debugDumpKernelSource(
     llvm::StringRef source, llvm::ArrayRef<std::string> definitions) {
   std::string dbg_filename;
-
-#ifndef CA_ENABLE_DEBUG_SUPPORT
+#if defined(NDEBUG) && !defined(CA_ENABLE_DEBUG_SUPPORT)
   (void)source;
   (void)definitions;
 #else
@@ -1429,7 +1435,7 @@ std::unique_ptr<llvm::Module> BaseModule::compileOpenCLCToIR(
   // TODO(CA-608): Allow developers to inject LLVM options for debugging at
   // this point, formerly called OCL_LLVM_DEBUG was remove due to lack of use.
 
-#ifdef CA_ENABLE_DEBUG_SUPPORT
+#if !defined(NDEBUG) || defined(CA_ENABLE_DEBUG_SUPPORT)
   const std::string dbg_filename =
       debugDumpKernelSource(source, options.definitions);
 #else
@@ -1681,14 +1687,13 @@ Result BaseModule::finalize(
           m.setDataLayout(DL);
           m.setTargetTriple(triple);
         }));
+    pm.addPass(compiler::utils::AlignModuleStructsPass());
   }
 
   pm.addPass(compiler::utils::VerifyReqdSubGroupSizeLegalPass());
 
-#if LLVM_VERSION_GREATER_EQUAL(17, 0)
   const compiler::utils::ReplaceTargetExtTysOptions RTETOpts;
   pm.addPass(compiler::utils::ReplaceTargetExtTysPass(RTETOpts));
-#endif
 
   // Lower all language-level builtins with corresponding mux builtins
   pm.addPass(compiler::utils::LowerToMuxBuiltinsPass());

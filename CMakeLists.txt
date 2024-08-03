@@ -69,7 +69,7 @@ message(STATUS "oneAPI Construction Kit version: ${PROJECT_VERSION}")
 find_program(GIT_EXECUTABLE git${CA_HOST_EXECUTABLE_SUFFIX})
 if(NOT GIT_EXECUTABLE STREQUAL GIT_EXECUTABLE-NOTFOUND)
   execute_process(
-    COMMAND ${GIT_EXECUTABLE} log -1 --format=%h
+    COMMAND ${GIT_EXECUTABLE} log -1 --no-show-signature --format=%h
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE CA_GIT_COMMIT)
   message(STATUS "oneAPI Construction Kit Git Commit: ${CA_GIT_COMMIT}")
@@ -98,6 +98,19 @@ ca_option(CA_ENABLE_COVERAGE BOOL
 ca_option(CA_EXTERNAL_BUILTINS BOOL
   "Enable external builtins, always on during cross compilation"
   CMAKE_CROSSCOMPILING)
+if(CA_PLATFORM_WINDOWS)
+  ca_option(CA_HOST_ENABLE_FP64 BOOL "Enable host cl_khr_fp64" OFF)
+else()
+  ca_option(CA_HOST_ENABLE_FP64 BOOL "Enable host cl_khr_fp64" ON)
+endif()
+ca_option(CA_HOST_ENABLE_FP16 BOOL "Enable host cl_khr_fp16" OFF)
+set(fp16_supported_arches ARM64;ARM)
+if(CA_HOST_ENABLE_FP16)
+  set(arch ${CMAKE_SYSTEM_PROCESSOR})
+  if(NOT ${arch} IN_LIST fp16_supported_arches)
+    message(WARNING "half-precision is not supported on ${arch} targets")
+  endif()
+endif()
 ca_option(CA_ENABLE_DOCUMENTATION BOOL
   "Enable documentation generation" ON)
 ca_option(CA_MUX_TARGETS_TO_ENABLE STRING

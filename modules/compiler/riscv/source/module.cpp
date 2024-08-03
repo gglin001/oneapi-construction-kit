@@ -99,6 +99,9 @@ compiler::Result RiscvModule::createBinary(
   // Set the entry point to the zero address to avoid a linker warning. The
   // entry point will not be used directly.
   lld_args.push_back("-e0");
+  if (getTarget().riscv_hal_device_info->link_shared) {
+    lld_args.push_back("--shared");
+  }
 
   const cargo::dynamic_array<uint8_t> finalizer_binary;
   {
@@ -131,7 +134,8 @@ compiler::Result RiscvModule::createBinary(
   }
 
 // copy the generated ELF file to a specified path if desired
-#if defined(CA_ENABLE_DEBUG_SUPPORT) || defined(CA_RISCV_DEMO_MODE)
+#if !defined(NDEBUG) || defined(CA_ENABLE_DEBUG_SUPPORT) || \
+    defined(CA_RISCV_DEMO_MODE)
   if (!getTarget().env_debug_prefix.empty()) {
     const std::string env_name =
         getTarget().env_debug_prefix + "_SAVE_ELF_PATH";
@@ -190,8 +194,9 @@ static llvm::TargetMachine *createTargetMachine(
 
   return llvm_target->createTargetMachine(
       target.llvm_triple, target.llvm_cpu, target.llvm_features, options,
-      llvm::Reloc::Model::Static, llvm::CodeModel::Small,
-      multi_llvm::CodeGenOptLevel::Aggressive);
+      target.riscv_hal_device_info->link_shared ? llvm::Reloc::Model::PIC_
+                                                : llvm::Reloc::Model::Static,
+      llvm::CodeModel::Small, multi_llvm::CodeGenOptLevel::Aggressive);
 }
 
 llvm::TargetMachine *riscv::RiscvModule::getTargetMachine() {

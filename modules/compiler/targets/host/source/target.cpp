@@ -33,6 +33,7 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
+#include <llvm/TargetParser/SubtargetFeature.h>
 #include <multi_llvm/multi_llvm.h>
 
 #if LLVM_VERSION_GREATER_EQUAL(18, 0)
@@ -57,10 +58,8 @@ namespace host {
 // Create a target machine, `abi` is optional and may be empty
 static llvm::TargetMachine *createTargetMachine(llvm::Triple TT,
                                                 llvm::StringRef CPU,
-                                                llvm::StringRef Features,
-                                                llvm::StringRef ABI) {
+                                                llvm::StringRef Features) {
   // Init the llvm target machine.
-  llvm::TargetOptions Options;
   std::string Error;
   const std::string &TripleStr = TT.str();
   const llvm::Target *LLVMTarget =
@@ -69,16 +68,18 @@ static llvm::TargetMachine *createTargetMachine(llvm::Triple TT,
     return nullptr;
   }
 
-  if (!ABI.empty()) {
-    Options.MCOptions.ABIName = ABI;
-  }
-
   std::optional<llvm::CodeModel::Model> CM;
-  // RISC-V needs the 'medium' code model as we don't ensure that the code and
-  // its statically defined symbols are loaded somewhere in the range of
-  // absolute addresses -2GB and +2GB, which is a requirement of the 'low' code
-  // model.
-  if (TT.isRISCV()) {
+  // Unlike other architectures, RISC-V does not currently support a large code
+  // model and does not change the default code model as a result of setting
+  // JIT=true. The default "medium low" code model (CodeModel::Low) allows code
+  // to address the entire RV32 address space, or (roughly) the lowest and
+  // highest 2GiB of the RV64 address space. We do not ensure that the code and
+  // its symbols are loaded somewhere in this range, so we change the code model
+  // to "medium any" (CodeModel::Medium), which allows addressing roughly 2GiB
+  // above and below the current position. Beware that this means we cannot
+  // import any symbol from the host, as those may not be within 2GiB of the
+  // kernel. This means any function needs to be included in the kernel itself.
+  if (TT.isRISCV() && TT.isArch64Bit()) {
     CM = llvm::CodeModel::Medium;
   }
   // Aarch64 fails on UnitCL test
@@ -90,6 +91,7 @@ static llvm::TargetMachine *createTargetMachine(llvm::Triple TT,
   // models for the architecture.
   // TODO: Investigate whether we can use a loader that does not have this
   // issue.
+  const llvm::TargetOptions Options;
   return LLVMTarget->createTargetMachine(
       TripleStr, CPU, Features, Options, /*RM=*/std::nullopt, CM,
       multi_llvm::CodeGenOptLevel::Aggressive,
@@ -117,12 +119,6 @@ compiler::Result HostTarget::initWithBuiltins(
     return compiler::Result::FAILURE;
   }
   builtins_host = std::move(loadedModule.get());
-
-#if LLVM_VERSION_GREATER_EQUAL(19, 0)
-  if (UseNewDbgInfoFormat && !builtins_host->IsNewDbgInfoFormat) {
-    builtins_host->convertToNewDbgValues();
-  }
-#endif
 #endif
 
   // initialize LLVM targets
@@ -190,9 +186,24 @@ compiler::Result HostTarget::initWithBuiltins(
       triple = llvm::Triple("armv7-unknown-linux-gnueabihf-elf");
       break;
     case host::arch::AARCH64:
-      assert(host::os::LINUX == host_device_info.os &&
-             "AArch64 cross-compile only supports Linux");
-      triple = llvm::Triple("aarch64-linux-gnu-elf");
+      switch (host_device_info.os) {
+        case host::os::LINUX:
+          triple = llvm::Triple("aarch64-linux-gnu-elf");
+          break;
+        case host::os::MACOS:
+          assert(host_device_info.native &&
+                 "macOS cross-compile not supported");
+          // Our generated code does not meet Mach-O restrictions: "mach-o
+          // section specifier requires a segment and section separated by a
+          // comma" when we use "notes" as a section name. Force ELF generation
+          // instead, which makes things easier for us anyway as we can reuse
+          // the existing ELF loading logic.
+          triple = llvm::Triple(llvm::sys::getProcessTriple() + "-elf");
+          break;
+        default:
+          assert(!"AArch64 cross-compile only supports Linux");
+          break;
+      }
       break;
     case host::arch::RISCV32:
       assert(host::os::LINUX == host_device_info.os &&
@@ -218,9 +229,15 @@ compiler::Result HostTarget::initWithBuiltins(
         case host::os::WINDOWS:
           // Using windows here ensures that _chkstk() is called which is
           // important for paging in the stack.
+#if defined(__MINGW32__) || defined(__MINGW64__)
+          triple = llvm::Triple(host::arch::X86 == host_device_info.arch
+                                    ? "i386-pc-windows-gnu-elf"
+                                    : "x86_64-w64-windows-gnu-elf");
+#else
           triple = llvm::Triple(host::arch::X86 == host_device_info.arch
                                     ? "i386-pc-windows-msvc-elf"
                                     : "x86_64-pc-windows-msvc-elf");
+#endif
           break;
         case host::os::MACOS:
           assert(host_device_info.native &&
@@ -233,89 +250,177 @@ compiler::Result HostTarget::initWithBuiltins(
       break;
   }
 
-  llvm::StringRef ABI = "";
-  llvm::StringRef CPUName = "";
-  llvm::StringMap<bool> FeatureMap;
+  std::string CPU;
+  llvm::SubtargetFeatures Features;
 
-  if (llvm::Triple::arm == triple.getArch()) {
-    FeatureMap["strict-align"] = true;
-    // We do not support denormals for single precision floating points, but we
-    // do for double precision. To support that we use neon (which is FTZ) for
-    // single precision floating points, and use the VFP with denormal support
-    // enabled for doubles. The neonfp feature enables the use of neon for
-    // single precision floating points.
-    FeatureMap["neonfp"] = true;
-    FeatureMap["neon"] = true;
-    // Hardware division instructions might not exist on all ARMv7 CPUs, but
-    // they probably exist on all the ones we might care about.
-    FeatureMap["hwdiv"] = true;
-    FeatureMap["hwdiv-arm"] = true;
-    if (host_device_info.half_capabilities) {
-      FeatureMap["fp16"] = true;
-    }
-#if defined(CA_HOST_TARGET_ARM_CPU)
-    CPUName = CA_HOST_TARGET_ARM_CPU;
+  switch (triple.getArch()) {
+#ifdef HOST_LLVM_ARM
+    case llvm::Triple::arm:
+      // We do not support denormals for single precision floating points, but
+      // we do for double precision. To support that we use neon (which is FTZ)
+      // for single precision floating points, and use the VFP with denormal
+      // support enabled for doubles. The neonfp feature enables the use of neon
+      // for single precision floating points.
+      Features.AddFeature("strict-align", true);
+      Features.AddFeature("neonfp", true);
+      Features.AddFeature("neon", true);
+      // Hardware division instructions might not exist on all ARMv7 CPUs, but
+      // they probably exist on all the ones we might care about.
+      Features.AddFeature("hwdiv", true);
+      Features.AddFeature("hwdiv-arm", true);
+      if (host_device_info.half_capabilities) {
+        Features.AddFeature("fp16", true);
+      }
+      break;
 #endif
-  } else if (llvm::Triple::aarch64 == triple.getArch()) {
-#if defined(CA_HOST_TARGET_AARCH64_CPU)
-    CPUName = CA_HOST_TARGET_AARCH64_CPU;
+#ifdef HOST_LLVM_RISCV
+    case llvm::Triple::riscv32:
+    case llvm::Triple::riscv64:
+      CPU = triple.getArch() == llvm::Triple::riscv32 ? "generic-rv32"
+                                                      : "generic-rv64";
+      // The following features are important for OpenCL, and generally
+      // constitute a minimum requirement for non-embedded profile. Without
+      // these features, we'd need compiler-rt support. Atomics are absolutely
+      // essential.
+      Features.AddFeature("m", true);  // Integer multiplication and division
+      Features.AddFeature("f", true);  // Floating point support
+      Features.AddFeature("a", true);  // Atomics
+#if defined(CA_HOST_ENABLE_FP64)
+      Features.AddFeature("d", true);  // Double support
 #endif
-  } else if (triple.isX86()) {
-    CPUName = "x86-64-v3";  // Default only, may be overridden below.
-    if (triple.isArch32Bit()) {
-#if defined(CA_HOST_TARGET_X86_CPU)
-      CPUName = CA_HOST_TARGET_X86_CPU;
+#if defined(CA_HOST_ENABLE_FP16)
+      Features.AddFeature("zfh", true);  // Half support
 #endif
-    } else {
-#if defined(CA_HOST_TARGET_X86_64_CPU)
-      CPUName = CA_HOST_TARGET_X86_64_CPU;
+      break;
 #endif
-    }
-  } else if (triple.isRISCV()) {
-    // These are reasonable defaults, which has been used for various RISC-V
-    // target so far. We should allow overriding of the ABI in the future
-    if (triple.isArch32Bit()) {
-      ABI = "ilp32d";
-      CPUName = "generic-rv32";
-#if defined(CA_HOST_TARGET_RISCV32_CPU)
-      CPUName = CA_HOST_TARGET_RISCV32_CPU;
+#ifdef HOST_LLVM_X86
+    case llvm::Triple::x86:
+    case llvm::Triple::x86_64:
+      CPU = "x86-64-v3";
+      break;
 #endif
-    } else {
-      ABI = "lp64d";
-      CPUName = "generic-rv64";
-#if defined(CA_HOST_TARGET_RISCV64_CPU)
-      CPUName = CA_HOST_TARGET_RISCV64_CPU;
-#endif
-    }
-    // The following features are important for OpenCL, and generally constitute
-    // a minimum requirement for non-embedded profile. Without these features,
-    // we'd need compiler-rt support. Atomics are absolutely essential.
-    // TODO: Allow overriding of the input features.
-    FeatureMap["m"] = true;  // Integer multiplication and division
-    FeatureMap["f"] = true;  // Floating point support
-    FeatureMap["a"] = true;  // Atomics
-    FeatureMap["d"] = true;  // Double support
+    default:
+      break;
   }
 
-#ifndef NDEBUG
-  if (const char *E = getenv("CA_HOST_TARGET_CPU")) {
-    CPUName = E;
+  auto SetCPUFeatures = [&](std::string NewCPU, std::string NewFeatures) {
+    if (!NewCPU.empty()) {
+      CPU = NewCPU;
+      Features = llvm::SubtargetFeatures();
+    }
+    if (!NewFeatures.empty()) {
+      std::vector<std::string> NewFeatureVector;
+      llvm::SubtargetFeatures::Split(NewFeatureVector, NewFeatures);
+      for (auto &NewFeature : NewFeatureVector) Features.AddFeature(NewFeature);
+    }
+  };
+
+  switch (triple.getArch()) {
+#ifdef HOST_LLVM_ARM
+    case llvm::Triple::arm:
+#ifndef CA_HOST_TARGET_ARM_CPU
+#define CA_HOST_TARGET_ARM_CPU ""
+#endif
+#ifndef CA_HOST_TARGET_ARM_FEATURES
+#define CA_HOST_TARGET_ARM_FEATURES ""
+#endif
+      SetCPUFeatures(CA_HOST_TARGET_ARM_CPU, CA_HOST_TARGET_ARM_FEATURES);
+      break;
+#endif
+#ifdef HOST_LLVM_AARCH64
+    case llvm::Triple::aarch64:
+#ifndef CA_HOST_TARGET_AARCH64_CPU
+#define CA_HOST_TARGET_AARCH64_CPU ""
+#endif
+#ifndef CA_HOST_TARGET_AARCH64_FEATURES
+#define CA_HOST_TARGET_AARCH64_FEATURES ""
+#endif
+      SetCPUFeatures(CA_HOST_TARGET_AARCH64_CPU,
+                     CA_HOST_TARGET_AARCH64_FEATURES);
+      break;
+#endif
+#ifdef HOST_LLVM_RISCV
+    case llvm::Triple::riscv32:
+#ifndef CA_HOST_TARGET_RISCV32_CPU
+#define CA_HOST_TARGET_RISCV32_CPU ""
+#endif
+#ifndef CA_HOST_TARGET_RISCV32_FEATURES
+#define CA_HOST_TARGET_RISCV32_FEATURES ""
+#endif
+      SetCPUFeatures(CA_HOST_TARGET_RISCV32_CPU,
+                     CA_HOST_TARGET_RISCV32_FEATURES);
+      break;
+    case llvm::Triple::riscv64:
+#ifndef CA_HOST_TARGET_RISCV64_CPU
+#define CA_HOST_TARGET_RISCV64_CPU ""
+#endif
+#ifndef CA_HOST_TARGET_RISCV64_FEATURES
+#define CA_HOST_TARGET_RISCV64_FEATURES ""
+#endif
+      SetCPUFeatures(CA_HOST_TARGET_RISCV64_CPU,
+                     CA_HOST_TARGET_RISCV64_FEATURES);
+      break;
+#endif
+#ifdef HOST_LLVM_X86
+    case llvm::Triple::x86:
+#ifndef CA_HOST_TARGET_X86_CPU
+#define CA_HOST_TARGET_X86_CPU ""
+#endif
+#ifndef CA_HOST_TARGET_X86_FEATURES
+#define CA_HOST_TARGET_X86_FEATURES ""
+#endif
+      SetCPUFeatures(CA_HOST_TARGET_X86_CPU, CA_HOST_TARGET_X86_FEATURES);
+      break;
+    case llvm::Triple::x86_64:
+#ifndef CA_HOST_TARGET_X86_64_CPU
+#define CA_HOST_TARGET_X86_64_CPU ""
+#endif
+#ifndef CA_HOST_TARGET_X86_64_FEATURES
+#define CA_HOST_TARGET_X86_64_FEATURES ""
+#endif
+      SetCPUFeatures(CA_HOST_TARGET_X86_64_CPU, CA_HOST_TARGET_X86_64_FEATURES);
+      break;
+#endif
+    default:
+      break;
+  }
+
+#if !defined(NDEBUG) || defined(CA_ENABLE_DEBUG_SUPPORT)
+  {
+    auto GetEnv = [](const char *Name) -> std::string {
+      auto *Value = std::getenv(Name);
+      return Value ? Value : "";
+    };
+    SetCPUFeatures(GetEnv("CA_HOST_TARGET_CPU"),
+                   GetEnv("CA_HOST_TARGET_FEATURES"));
+    ;
   }
 #endif
 
-  if (CPUName == "native") {
-    CPUName = llvm::sys::getHostCPUName();
-    FeatureMap.clear();
+  if (CPU == "native") {
+    CPU = llvm::sys::getHostCPUName();
+
+    llvm::SubtargetFeatures NativeFeatures;
+
+#if LLVM_VERSION_GREATER_EQUAL(19, 0)
+    auto FeatureMap = llvm::sys::getHostCPUFeatures();
+#else
+    llvm::StringMap<bool> FeatureMap;
     llvm::sys::getHostCPUFeatures(FeatureMap);
+#endif
+    for (auto &[FeatureName, IsEnabled] : FeatureMap) {
+      NativeFeatures.AddFeature(FeatureName, IsEnabled);
+    }
+
+    NativeFeatures.addFeaturesVector(Features.getFeatures());
+    Features = std::move(NativeFeatures);
   }
 
-  if (compiler_info->supports_deferred_compilation) {
+  if (compiler_info->supports_deferred_compilation()) {
     llvm::orc::JITTargetMachineBuilder TMBuilder(triple);
-    TMBuilder.setCPU(CPUName.str());
+    TMBuilder.setCPU(CPU);
     TMBuilder.setCodeGenOptLevel(multi_llvm::CodeGenOptLevel::Aggressive);
-    for (auto &Feature : FeatureMap) {
-      TMBuilder.getFeatures().AddFeature(Feature.first(), Feature.second);
-    }
+    TMBuilder.getFeatures().addFeaturesVector(Features.getFeatures());
     auto Builder = llvm::orc::LLJITBuilder();
 
     Builder.setJITTargetMachineBuilder(TMBuilder);
@@ -366,21 +471,8 @@ compiler::Result HostTarget::initWithBuiltins(
     target_machine = std::move(*TM);
   } else {
     // No JIT support so create target machine directly.
-    std::string Features;
-    bool first = true;
-    for (auto &[FeatureName, IsEnabled] : FeatureMap) {
-      if (first) {
-        first = false;
-      } else {
-        Features += ",";
-      }
-      if (IsEnabled) {
-        Features += '+' + FeatureName.str();
-      } else {
-        Features += '-' + FeatureName.str();
-      }
-    }
-    target_machine.reset(createTargetMachine(triple, CPUName, Features, ABI));
+    target_machine.reset(
+        createTargetMachine(triple, CPU, Features.getString()));
   }
 
   return compiler::Result::SUCCESS;

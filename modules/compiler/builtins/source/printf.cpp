@@ -150,15 +150,6 @@ size_t ParseSpecifier(std::string str, size_t pos, size_t &w, size_t &p,
 /// @param[in] d The floating point valule to print.
 template <typename T>
 void PrintFloatingPoint(std::string partial, T d) {
-#if defined(__MINGW32__) || defined(__MINGW64__)
-  // MinGW seems to follow MSVC pre-2015 formatting for %e/%E/%g/%G which did
-  // not match the C++11 specification.  There is however, this method to set
-  // conformant printing.  This method was removed in MSVC 2015 because it
-  // became conformant by default, so if a future version of MinGW removes this
-  // function then it is probably no longer required.
-  unsigned int old_printf_format = _set_output_format(_TWO_DIGIT_EXPONENT);
-#endif
-
   // manually format NaNs and Infinity as the system
   // printf doesn't format them properly on windows
   if (std::isnan(d) || std::isinf(d)) {
@@ -196,7 +187,7 @@ void PrintFloatingPoint(std::string partial, T d) {
         f.insert(0, " ");
       }
     }
-    partial.replace(start, end, f);
+    partial.replace(start, end - start, f);
     // KLOCWORK "NNTS.MUST" possible false positive
     // Klocwork doesn't realize c_str() returns a null-terminated string
     ::printf("%s", partial.c_str());
@@ -254,7 +245,7 @@ void PrintFloatingPoint(std::string partial, T d) {
         }
       }
 
-      partial.replace(start, end, f);
+      partial.replace(start, end - start, f);
       ::printf("%s", partial.c_str());
     } else {
       // All other cases work fine with MinGW printf.
@@ -266,10 +257,6 @@ void PrintFloatingPoint(std::string partial, T d) {
     // Possible vulnerability when the printf format string comes from the user
     ::printf(partial.c_str(), d);
   }
-
-#if defined(__MINGW32__) || defined(__MINGW64__)
-  _set_output_format(old_printf_format);
-#endif
 }
 }  // namespace
 
@@ -329,7 +316,13 @@ void builtins::printf::print(uint8_t *pack, size_t max_length,
 
       // if the call doesn't have any parameters just print the format string
       if (printf_desc.types.size() == 0) {
-        ::printf("%s", printf_desc.format_string.c_str());
+        // We cannot print using "%s" because the format string may contain
+        // "%%" which must be printed as "%", not as "%%". Calling printf with a
+        // non-constant format string results in a warning (and we build with
+        // warnings treated as errors). We have already checked that the format
+        // string does not consume any arguments though, so we can just add a
+        // dummy argument to suppress any warnings.
+        ::printf(printf_desc.format_string.c_str(), 0);
         continue;
       }
 

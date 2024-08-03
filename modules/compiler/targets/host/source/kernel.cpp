@@ -68,6 +68,7 @@ HostKernel::~HostKernel() {
         llvm::cantFail(es.removeJITDylib(*jit));
       }
     }
+    es.getSymbolStringPool()->clearDeadEntries();
   }
 }
 
@@ -348,31 +349,30 @@ HostKernel::lookupOrCreateOptimizedKernel(std::array<size_t, 3> local_size) {
     // Register this JITDylib so we can clear up its resources later.
     kernel_jit_dylibs.insert(jd->getName());
 
-    llvm::orc::SymbolMap symbols;
-    llvm::orc::MangleAndInterner mangle(
-        target.orc_engine->getExecutionSession(),
-        target.orc_engine->getDataLayout());
+    if (auto relocs = host::utils::getRelocations(); relocs.size()) {
+      llvm::orc::SymbolMap symbols;
+      llvm::orc::MangleAndInterner mangle(
+          target.orc_engine->getExecutionSession(),
+          target.orc_engine->getDataLayout());
 
-    for (const auto &reloc : host::utils::getRelocations()) {
-#if LLVM_VERSION_GREATER_EQUAL(17, 0)
-      symbols[mangle(reloc.first)] = {llvm::orc::ExecutorAddr(reloc.second),
-                                      llvm::JITSymbolFlags::Exported};
-#else
-      symbols[mangle(reloc.first)] = llvm::JITEvaluatedSymbol(
-          reloc.second, llvm::JITSymbolFlags::Exported);
-#endif
-    }
-
-    // Define our runtime library symbols required for the JIT to successfully
-    // link.
-    if (auto err = jd->define(llvm::orc::absoluteSymbols(std::move(symbols)))) {
-      if (auto callback = target.getNotifyCallbackFn()) {
-        callback(llvm::toString(std::move(err)).c_str(), /*data*/ nullptr,
-                 /*data_size*/ 0);
-      } else {
-        llvm::consumeError(std::move(err));
+      for (const auto &reloc : relocs) {
+        symbols[mangle(reloc.first)] = {llvm::orc::ExecutorAddr(reloc.second),
+                                        llvm::JITSymbolFlags::Exported};
       }
-      return cargo::make_unexpected(compiler::Result::FINALIZE_PROGRAM_FAILURE);
+
+      // Define our runtime library symbols required for the JIT to successfully
+      // link.
+      if (auto err =
+              jd->define(llvm::orc::absoluteSymbols(std::move(symbols)))) {
+        if (auto callback = target.getNotifyCallbackFn()) {
+          callback(llvm::toString(std::move(err)).c_str(), /*data*/ nullptr,
+                   /*data_size*/ 0);
+        } else {
+          llvm::consumeError(std::move(err));
+        }
+        return cargo::make_unexpected(
+            compiler::Result::FINALIZE_PROGRAM_FAILURE);
+      }
     }
 
     // Add the module.
@@ -414,11 +414,7 @@ HostKernel::lookupOrCreateOptimizedKernel(std::array<size_t, 3> local_size) {
               assert(r->size() == 1 && "Unexpected number of results");
               assert(r->count(name) && "Missing result for symbol");
               auto address = r->begin()->second.getAddress();
-#if LLVM_VERSION_GREATER_EQUAL(17, 0)
               promise.set_value(address.getValue());
-#else
-              promise.set_value(address);
-#endif
             } else {
               const llvm::ErrorAsOutParameter _(&err);
               err = r.takeError();

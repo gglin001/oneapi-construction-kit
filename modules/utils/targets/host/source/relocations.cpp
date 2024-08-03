@@ -17,6 +17,12 @@
 #include <host/utils/relocations.h>
 #include <utils/system.h>
 
+#ifndef HOST_UTILS_HAVE_RELOCATIONS
+#error HOST_UTILS_HAVE_RELOCATIONS should have been defined by relocations.h.
+#endif
+
+#if HOST_UTILS_HAVE_RELOCATIONS
+
 #if !defined(NDEBUG) && !defined(_MSC_VER)
 // 'nix debug builds do extra file checks
 #include <fcntl.h>
@@ -35,14 +41,22 @@
 // functions.
 extern "C" {
 
-#if defined(_MSC_VER)
 // Windows uses chkstk() to ensure there is enough stack space paged in.
+#if defined(_MSC_VER)
 #if defined(UTILS_SYSTEM_64_BIT)
 extern void __chkstk();
 #else
 extern void _chkstk();
 #endif
 #endif  // _MSC_VER
+
+#if defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(UTILS_SYSTEM_64_BIT)
+extern void ___chkstk_ms();
+#else
+extern void(_alloca)();
+#endif
+#endif
 
 #if defined(UTILS_SYSTEM_32_BIT)
 // On 32-bit (both x86 and Arm) long division is done in software.
@@ -60,6 +74,12 @@ extern void __aeabi_uldivmod();
 extern void __fixdfdi();
 extern void __floatdidf();
 extern void __floatdisf();
+#endif
+
+#if defined(UTILS_SYSTEM_X86) && defined(CA_HOST_ENABLE_FP64) && \
+    defined(CA_HOST_ENABLE_FP16)
+// Truncation of fp64 to fp16 is done in software.
+extern void __truncdfhf2();
 #endif
 }
 
@@ -153,6 +173,14 @@ std::vector<std::pair<std::string, uint64_t>> getRelocations() {
 #endif  // UTILS_SYSTEM_64_BIT
 #endif  // _MSC_VER
 
+#if defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(UTILS_SYSTEM_64_BIT)
+      {"___chkstk_ms", reinterpret_cast<uint64_t>(&___chkstk_ms)},
+#else
+      {"_alloca", reinterpret_cast<uint64_t>(&_alloca)},
+#endif  // UTILS_SYSTEM_64_BIT
+#endif  // _MSC_VER
+
 #if defined(UTILS_SYSTEM_32_BIT)
       {"__divdi3", reinterpret_cast<uint64_t>(&__divdi3)},
       {"__udivdi3", reinterpret_cast<uint64_t>(&__udivdi3)},
@@ -178,7 +206,15 @@ std::vector<std::pair<std::string, uint64_t>> getRelocations() {
       {"fminf", reinterpret_cast<uint64_t>(&fminf)},
       {"fmaxf", reinterpret_cast<uint64_t>(&fmaxf)},
 #endif  // defined(UTILS_SYSTEM_ARM) && defined(UTILS_SYSTEM_32_BIT)
+
+#if defined(UTILS_SYSTEM_X86) && defined(CA_HOST_ENABLE_FP64) && \
+    defined(CA_HOST_ENABLE_FP16)
+      {"__truncdfhf2", reinterpret_cast<uint64_t>(&__truncdfhf2)},
+#endif  // defined(UTILS_SYSTEM_X86) && defined(CA_HOST_ENABLE_FP64) &&
+        // defined(CA_HOST_ENABLE_FP16)
   }};
 }
 }  // namespace utils
 }  // namespace host
+
+#endif  // HOST_UTILS_HAVE_RELOCATIONS

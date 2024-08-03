@@ -254,7 +254,7 @@ void commandNDRange(host::queue_s *queue, host::command_info_s *info) {
   std::array<std::atomic<bool>, signal_count> signals;
   std::atomic<uint32_t> queued(0);
   host_device->thread_pool.enqueue_range(
-      [](void *const in, void *const info, void *fence, size_t index) {
+      [](void *const in, void *const info, void *, size_t index) {
         auto *const kernel_variant = static_cast<host::kernel_variant_s *>(in);
         auto *const ndrange = static_cast<host::command_info_ndrange_s *>(info);
         auto *const ndrange_info = ndrange->ndrange_info;
@@ -280,7 +280,7 @@ void commandNDRange(host::queue_s *queue, host::command_info_s *info) {
         schedule_info.work_dim =
             static_cast<uint32_t>(ndrange_info->dimensions);
 
-        kernel_variant->hook(ndrange_info->packed_args, &schedule_info);
+        kernel_variant->hook(ndrange_info->packed_args.data(), &schedule_info);
       },
       &variant, ndrange, signals, &queued, slices);
 

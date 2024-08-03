@@ -40,12 +40,10 @@ if("${CA_CL_PLATFORM_VERSION}" STREQUAL "")
   # Version strings for non-release builds will have their build type and
   # shortened git commit hash in the version string.
   string(TOUPPER ${CMAKE_BUILD_TYPE} BUILD_TYPE_UPPER)
-  if(NOT ${BUILD_TYPE_UPPER} MATCHES "RELEASE")
-    string(APPEND CA_CL_PLATFORM_VERSION
-      " (${CMAKE_BUILD_TYPE}, ${CA_GIT_COMMIT})")
-  endif()
 endif()
 message(STATUS "OpenCL platform version: ${CA_CL_PLATFORM_VERSION}")
+
+set(CA_BUILD_TYPE ${CMAKE_BUILD_TYPE})
 
 # Platform informations can be overriden
 if("${CA_CL_PLATFORM_NAME}" STREQUAL "")
@@ -84,15 +82,12 @@ message(STATUS "OpenCL device version: ${CA_CL_DEVICE_VERSION}")
 set(CA_CL_DEVICE_OPENCL_C_VERSION "OpenCL C 1.2 Clang ${LLVM_PACKAGE_VERSION}")
 message(STATUS "OpenCL C version: ${CA_CL_DEVICE_OPENCL_C_VERSION}")
 
-set(CL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/OpenCL-Headers
-  CACHE PATH "OpenCL header include directory" FORCE)
-
 # If the online coverage is enabled we add the modules so that the XML file
 # can be generated automatically.
 if(${CA_ENABLE_COVERAGE} AND ${CA_RUNTIME_COMPILER_ENABLED})
   add_coverage_modules(${CMAKE_CURRENT_SOURCE_DIR}/source
     ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/CL.dir/source
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/OpenCL-Headers/CL
+    ${CL_INCLUDE_DIR}/CL
     ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/CL.dir/source)
 endif()
 
@@ -163,7 +158,6 @@ set(CL_LINK_FLAGS)
 set(CL_LINK_FLAGS_RELEASE)
 
 if(CA_PLATFORM_LINUX OR CA_PLATFORM_ANDROID OR
-    (CA_PLATFORM_WINDOWS AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU") OR
     CA_PLATFORM_QNX)
   # Set the OpenCL API entry point version map.
   string(APPEND CL_LINK_FLAGS " -Xlinker \
@@ -205,7 +199,7 @@ if(CA_PLATFORM_LINUX OR CA_PLATFORM_ANDROID OR
     string(APPEND CL_LINK_FLAGS_RELEASE
       " -Xlinker --icf=all -Xlinker --icf-iterations -Xlinker 5")
   endif()
-elseif(CA_PLATFORM_WINDOWS AND CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+elseif(CA_PLATFORM_WINDOWS)
   # Detect whether or not LLVMExecutionEngine is linked into the target.
   # This knowledge is needed to export JIT debug symbols, which will
   # cause an unresolved error if the library is not linked.
@@ -221,14 +215,19 @@ elseif(CA_PLATFORM_WINDOWS AND CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   # In order to avoid unnessesary duplication of .def files depending on the
   # OPENCL_LIBRARY_NAME name we use CMake to configure these files before use.
   set(CA_CL_LIBRARY_DEF_FILE "export-windows.def")
-  set(ExportLibraryName ${CA_CL_LIBRARY_NAME})
+  set(ExportLibraryName "${CMAKE_STATIC_LIBRARY_PREFIX}${CA_CL_LIBRARY_NAME}")
   configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/source/${CA_CL_LIBRARY_DEF_FILE}.cmake
     ${CMAKE_CURRENT_BINARY_DIR}/source/${CA_CL_LIBRARY_DEF_FILE})
-  # Lastly tell the linker to use the configured .def file
-  string(APPEND CL_LINK_FLAGS
-    " /DEF:${CMAKE_CURRENT_BINARY_DIR}/source/${CA_CL_LIBRARY_DEF_FILE}")
-  string(APPEND CL_LINK_FLAGS_RELEASE " /OPT:REF /OPT:ICF=5")
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    # Lastly tell the linker to use the configured .def file
+    string(APPEND CL_LINK_FLAGS
+      " /DEF:${CMAKE_CURRENT_BINARY_DIR}/source/${CA_CL_LIBRARY_DEF_FILE}")
+    string(APPEND CL_LINK_FLAGS_RELEASE " /OPT:REF /OPT:ICF=5")
+  else()
+    string(APPEND CL_LINK_FLAGS
+      " ${CMAKE_CURRENT_BINARY_DIR}/source/${CA_CL_LIBRARY_DEF_FILE}")
+  endif()
 else()
   message(WARNING "Unhandled build environment.")
 endif()

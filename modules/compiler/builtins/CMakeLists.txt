@@ -35,9 +35,13 @@ include(cmake/FindBuiltinsTools.cmake)
 if(NOT CA_EXTERNAL_BUILTINS AND CA_RUNTIME_COMPILER_ENABLED)
   if(NOT DEFINED CA_BUILTINS_TOOLS_DIR)
     if(CMAKE_CROSSCOMPILING)
-      message(FATAL_ERROR
-        "Cross compiled builds requires CA_EXTERNAL_BUILTINS or "
-        "CA_BUILTINS_TOOLS_DIR to be set!")
+      if(EXISTS ${LLVM_NATIVE_TOOL_DIR})
+        set(CA_BUILTINS_TOOLS_DIR ${LLVM_NATIVE_TOOL_DIR})
+      else()
+        message(FATAL_ERROR
+          "Cross compiled builds requires CA_EXTERNAL_BUILTINS or "
+          "CA_BUILTINS_TOOLS_DIR to be set!")
+      endif()
     # We might be in-tree and not be importing an LLVM directory, in which case
     # don't assume any builtins directory - we'll take the tools required to
     # build the builtins directly from the corresponding LLVM targets.
@@ -82,8 +86,7 @@ set(CODEPLAY_IMG_INTEGRATION_INCLUDE_DIRS
   ${BUILTINS_SOURCE_DIR}/include/builtins
   ${BUILTINS_SOURCE_DIR}/abacus/include)
 # TODO(CA-600): libimg should not depend on the OpenCL headers
-set(CODEPLAY_IMG_OPENCL_INCLUDE_DIR
-  ${PROJECT_SOURCE_DIR}/source/cl/external/OpenCL-Headers)
+set(CODEPLAY_IMG_OPENCL_INCLUDE_DIR ${CL_INCLUDE_DIR})
 option(CODEPLAY_IMG_ENABLE_INSTALL "Enable libimg install target." OFF)
 add_ca_subdirectory(libimg)
 

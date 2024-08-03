@@ -125,7 +125,7 @@ TEST_F(CommandBufferEnqueueTest, IncrementKernelTwiceDifferentQueues) {
   // We need something we can check was enqueued twice.
   const char *code = R"OpenCLC(
   __kernel void increment_kernel(global int *counter) {
-    ++(counter[0]);
+    atomic_inc(&counter[0]);
   }
 )OpenCLC";
   const size_t code_length = std::strlen(code);
@@ -879,7 +879,7 @@ TEST_F(SubstituteCommandQueueTest, CompatibleQueueSimultaneousWithFlag) {
 TEST_F(SubstituteCommandQueueTest, NullQueues) {
   // Enqueue the command buffer substituting with null command queue parameter
   // but non-zero command queue length.
-  ASSERT_EQ_ERRCODE(CL_INVALID_COMMAND_QUEUE,
+  ASSERT_EQ_ERRCODE(CL_INVALID_VALUE,
                     clEnqueueCommandBufferKHR(1, nullptr, command_buffer, 0,
                                               nullptr, nullptr));
 }
@@ -893,10 +893,9 @@ TEST_F(SubstituteCommandQueueTest, ZeroQueues) {
 
   // Enqueue the command buffer substituting with non-null command queue
   // parameter but zero command queue length.
-  ASSERT_EQ_ERRCODE(
-      CL_INVALID_COMMAND_QUEUE,
-      clEnqueueCommandBufferKHR(0, &compatible_command_queue, command_buffer, 0,
-                                nullptr, nullptr));
+  EXPECT_EQ_ERRCODE(CL_INVALID_VALUE, clEnqueueCommandBufferKHR(
+                                          0, &compatible_command_queue,
+                                          command_buffer, 0, nullptr, nullptr));
 
   // Cleanup resources.
   EXPECT_SUCCESS(clReleaseCommandQueue(compatible_command_queue));
@@ -917,7 +916,7 @@ TEST_F(SubstituteCommandQueueTest, InvalidNumberQueues) {
   // buffer creation.
   cl_command_queue command_queues[] = {first_compatible_command_queue,
                                        second_compatible_command_queue};
-  ASSERT_EQ_ERRCODE(CL_INVALID_COMMAND_QUEUE,
+  EXPECT_EQ_ERRCODE(CL_INVALID_VALUE,
                     clEnqueueCommandBufferKHR(2, command_queues, command_buffer,
                                               0, nullptr, nullptr));
 
@@ -936,8 +935,8 @@ TEST_F(SubstituteCommandQueueTest, IncompatibleQueueProperties) {
   EXPECT_SUCCESS(error);
 
   // Enqueue the command buffer substituting with incompatible command queue.
-  ASSERT_EQ_ERRCODE(
-      CL_INVALID_COMMAND_QUEUE,
+  EXPECT_EQ_ERRCODE(
+      CL_INCOMPATIBLE_COMMAND_QUEUE_KHR,
       clEnqueueCommandBufferKHR(1, &incompatible_command_queue, command_buffer,
                                 0, nullptr, nullptr));
 
@@ -1002,8 +1001,8 @@ TEST_F(SubstituteCommandQueueTest, IncompatibleQueueContext) {
   EXPECT_SUCCESS(error);
 
   // Enqueue the command buffer substituting with incompatible command queue.
-  ASSERT_EQ_ERRCODE(
-      CL_INVALID_COMMAND_QUEUE,
+  EXPECT_EQ_ERRCODE(
+      CL_INCOMPATIBLE_COMMAND_QUEUE_KHR,
       clEnqueueCommandBufferKHR(1, &incompatible_command_queue, command_buffer,
                                 0, nullptr, nullptr));
 

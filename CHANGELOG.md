@@ -23,7 +23,7 @@ Upgrade guidance:
 * The `compiler::utils::createLoop` API has moved its list of `IVs` parameter
   into its `compiler::utils::CreateLoopOpts` parameter. It can now also set the
   IV names via a second `CreateLoopOpts` field.
-* Support for LLVM versions is now limited to LLVM 16 and LLVM 17. Support for
+* Support for LLVM versions is now limited to LLVM 17 and LLVM 18. Support for
   earlier LLVM versions has been removed.
 * Support for FMA (fused multiply-add) is required for the device. For the host
   device for x86-64, this means only x86-64-v3 and newer are supported. This
@@ -39,6 +39,8 @@ Upgrade guidance:
   `CA_HOST_TARGET_AARCH64_CPU` and `CA_HOST_TARGET_RISCV64_CPU`. The environment variable
   `CA_HOST_TARGET_CPU` remains the same name. Note that `CA_HOST_TARGET_CPU_NATIVE` is no longer
   supported but can be achieved by using `native` as a value for the variants.
+* The utility function `addParamToAllFunctions` has been moved to
+  `ReplaceLocalModuleScopeVariablesPass` and renamed as it is only used there.
 
 ## Version 3.0.0
 

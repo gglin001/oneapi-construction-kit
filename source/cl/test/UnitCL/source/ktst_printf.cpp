@@ -243,7 +243,9 @@ TEST_P(PrintfExecution, Printf_10_print_nan) {
        // can't guarantee that the sign is preserved, so accept either + or -
        << "(\\+|-)nan"
        << "(\\+|-)nan"
-       << "(\\+|-)NAN";
+       << "(\\+|-)NAN"
+       << "\nas part of a longer format:\n"
+       << "lorem ipsum nan dolor sit amet";
     return std::regex(ss.str());
   };
 
@@ -1750,6 +1752,14 @@ TEST_P(PrintfExecution, Printf_22_Half_With_Double_Conversion) {
 TEST_P(PrintfExecutionSPIRV, Printf_23_String_DPCPP) {
   fail_if_not_vectorized_ = false;
   ReferencePrintfString ref = [](size_t) { return "Hello World!\n"; };
+
+  this->SetPrintfReference(1, ref);
+  this->RunPrintf1D(1);
+}
+
+TEST_P(PrintfExecution, Printf_24_Empty_String_Param) {
+  fail_if_not_vectorized_ = false;
+  ReferencePrintfString ref = [](size_t) { return "\n"; };
 
   this->SetPrintfReference(1, ref);
   this->RunPrintf1D(1);

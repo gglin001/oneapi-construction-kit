@@ -20,8 +20,10 @@
 #include <base/module.h>
 #include <clang/Frontend/CompilerInstance.h>
 #include <compiler/library.h>
-#include <llvm/Bitcode/BitcodeWriter.h>
+#include <llvm/Bitcode/BitcodeWriterPass.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/PassManager.h>
+#include <llvm/IRPrinter/IRPrintingPasses.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/CodeGen.h>
 #include <llvm/Support/Error.h>
@@ -157,11 +159,13 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  llvm::ModulePassManager printMPM;
   if (FileType == multi_llvm::CodeGenFileType::AssemblyFile) {
-    Out->os() << *M.get();
+    printMPM.addPass(llvm::PrintModulePass(Out->os()));
   } else {
-    WriteBitcodeToFile(*M.get(), Out->os());
+    printMPM.addPass(llvm::BitcodeWriterPass(Out->os()));
   }
+  printMPM.run(*M, PassMach->getMAM());
   Out->keep();
 
   return 0;
@@ -263,9 +267,6 @@ Expected<std::unique_ptr<Module>> driver::convertInputToIR() {
                  ->getLLVMContext()
           : LLVMCtx.get();
   assert(LLVMContextToUse && "Missing LLVM Context");
-#if LLVM_VERSION_LESS(17, 0)
-  LLVMContextToUse->setOpaquePointers(true);
-#endif
 
   // Assume that .bc and .ll files are already IR unless told otherwise.
   if (InputLanguage == "ir" ||

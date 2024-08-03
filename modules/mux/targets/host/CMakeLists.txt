@@ -52,34 +52,6 @@ else()
 endif()
 
 #[=======================================================================[.rst:
-.. cmake:variable:: CA_HOST_ENABLE_FP64
-
-  Enable OpenCL 64-bit double support ``cl_khr_fp64``, enabled by default
-  except on Windows.
-#]=======================================================================]
-if(CA_PLATFORM_WINDOWS)
-  ca_option(CA_HOST_ENABLE_FP64 BOOL "Enable host cl_khr_fp64" OFF)
-else()
-  ca_option(CA_HOST_ENABLE_FP64 BOOL "Enable host cl_khr_fp64" ON)
-endif()
-
-#[=======================================================================[.rst:
-.. cmake:variable:: CA_HOST_ENABLE_FP16
-
-  Enable the OpenCL 16-bit half support extension ``cl_khr_f16``. We've been
-  testing fp16 on AArch64, but support is not guaranteed across all devices, so
-  this option uniformly remains off by default
-#]=======================================================================]
-ca_option(CA_HOST_ENABLE_FP16 BOOL "Enable host cl_khr_fp16" OFF)
-set(fp16_supported_arches ARM64;ARM)
-if(CA_HOST_ENABLE_FP16)
-  set(arch ${CMAKE_SYSTEM_PROCESSOR})
-  if(NOT ${arch} IN_LIST fp16_supported_arches)
-    message(WARNING "half-precision is not supported on ${arch} targets")
-  endif()
-endif()
-
-#[=======================================================================[.rst:
 .. cmake:variable:: CA_HOST_ENABLE_PAPI_COUNTERS
 
   Enable counter type query pools in Host, supported with PAPI. Requires an
@@ -128,7 +100,8 @@ add_ca_library(host STATIC
   ${CMAKE_CURRENT_SOURCE_DIR}/source/query_pool.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/source/queue.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/source/semaphore.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/source/thread_pool.cpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/source/thread_pool.cpp
+  DEPENDS mux-config abacus_generate)
 
 target_include_directories(host PUBLIC
 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)

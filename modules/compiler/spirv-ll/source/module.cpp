@@ -73,7 +73,11 @@ spirv_ll::Module::Module(
       WorkgroupSize({{1, 1, 1}}),
       BufferSizeArray(nullptr),
       deferredSpecConstantOps(),
-      ImplicitDebugScopes(true) {}
+      ImplicitDebugScopes(true) {
+#if LLVM_VERSION_GREATER_EQUAL(19, 0)
+  llvmModule->setIsNewDbgInfoFormat(false);
+#endif
+}
 
 spirv_ll::Module::Module(spirv_ll::Context &context,
                          llvm::ArrayRef<uint32_t> code)
@@ -165,21 +169,6 @@ const spirv_ll::OpExecutionMode *spirv_ll::Module::getExecutionMode(
   }
   return nullptr;
 }
-
-#if LLVM_VERSION_LESS(17, 0)
-void spirv_ll::Module::addInternalStructType(spv::Id ty,
-                                             llvm::StructType *structTy) {
-  InternalStructureTypes[ty] = structTy;
-}
-
-llvm::StructType *spirv_ll::Module::getInternalStructType(spv::Id ty) const {
-  auto found = InternalStructureTypes.find(ty);
-  if (InternalStructureTypes.end() != found) {
-    return found->getSecond();
-  }
-  return nullptr;
-}
-#endif
 
 void spirv_ll::Module::setSourceLanguage(spv::SourceLanguage sourceLang) {
   sourceLanguage = sourceLang;
