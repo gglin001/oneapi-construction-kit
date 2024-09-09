@@ -210,6 +210,10 @@ endif()
 # Find the operating systems threading library.
 find_package(Threads REQUIRED)
 
+# tmp for build
+find_package(ZLIB REQUIRED)
+find_package(zstd REQUIRED)
+
 # Add format target to automatically format modified source files.
 include(Format)
 

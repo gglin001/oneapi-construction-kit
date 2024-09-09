@@ -23,6 +23,6 @@ target_compile_definitions(oclc PRIVATE ${CA_CL_COMPILE_DEFINITIONS}
   $<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 # Always link against CL instead of OpenCL to avoid the need to set environment
 # varaibles and retain the usability of the tool.
-target_link_libraries(oclc PRIVATE cargo CL)
+target_link_libraries(oclc PRIVATE cargo CL ZLIB::ZLIB ${zstd_LIBRARY})
 
 install(TARGETS oclc RUNTIME DESTINATION bin COMPONENT OCLTools)
