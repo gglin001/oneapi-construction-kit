@@ -1,6 +1,7 @@
 {
     "terminal.integrated.env.linux": {
         "EXT_PATH": "${workspaceFolder}/build/bin",
+        "OCL_ICD_VENDORS": "${workspaceFolder}/build/share/OpenCL/vendors",
     },
     "terminal.integrated.env.osx": {
         "EXT_PATH": "${workspaceFolder}/build/bin",
