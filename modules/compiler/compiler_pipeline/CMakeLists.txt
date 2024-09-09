@@ -120,6 +120,8 @@ add_ca_library(compiler-pipeline STATIC
 target_include_directories(compiler-pipeline PUBLIC
 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
+target_compile_options(compiler-pipeline PRIVATE "-Wno-error=unused-but-set-variable")
+
 target_compile_definitions(compiler-pipeline PRIVATE
   $<$<BOOL:${CA_PLATFORM_LINUX}>:CA_PLATFORM_LINUX>
   $<$<BOOL:${CA_PLATFORM_WINDOWS}>:CA_PLATFORM_WINDOWS>
