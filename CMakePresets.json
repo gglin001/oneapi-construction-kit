@@ -17,6 +17,7 @@
         "CA_LLVM_INSTALL_DIR": "/root/micromamba/envs/pyenv",
         "CA_ENABLE_DOCUMENTATION": false,
         "CA_ENABLE_TESTS": false,
+        "CA_RUNTIME_COMPILER_ENABLED": true,
         "CA_RISCV_ENABLED": true,
         "CA_CL_ENABLE_ICD_LOADER": false,
         "CA_ENABLE_API": "cl",
