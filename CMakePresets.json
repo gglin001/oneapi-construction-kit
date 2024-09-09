@@ -18,10 +18,28 @@
         "CA_ENABLE_DOCUMENTATION": false,
         "CA_ENABLE_TESTS": false,
         "CA_RISCV_ENABLED": true,
+        "CA_CL_ENABLE_ICD_LOADER": false,
         "CA_ENABLE_API": "cl",
         "GIT_CLANG_FORMAT_INCLUDED": true,
         "args_CLANG_FORMAT_EXECUTABLE": "clang-format",
         "LLVM_ENABLE_ASSERTIONS": true
+      }
+    },
+    {
+      "name": "cl_linux_conda",
+      "inherits": "cl_linux",
+      "cacheVariables": {
+        "FETCHCONTENT_BASE_DIR": "${sourceDir}/_demos/_deps",
+        "CA_LLVM_INSTALL_DIR": "/root/micromamba/envs/pyenv",
+        "RISCV_TOOLCHAIN_DIR": "/root/micromamba/envs/pyenv",
+        "CMAKE_C_COMPILER": "/root/micromamba/envs/pyenv/bin/clang",
+        "CMAKE_CXX_COMPILER": "/root/micromamba/envs/pyenv/bin/clang++",
+        "CA_RISCV_ENABLED": true,
+        "CA_CL_ENABLE_ICD_LOADER": true,
+        // misc, tmp for build
+        "LLVM_ENABLE_ZLIB": true,
+        "LLVM_ENABLE_ZSTD": true,
+        "zstd_DIR": "/root/micromamba/envs/pyenv/lib/cmake/zstd"
       }
     },
     {
