@@ -10,9 +10,18 @@
       "name": "Debug",
       "program": "${workspaceFolder}/build/bin/clVectorAddition",
       // "program": "${command:cmake.getLaunchTargetPath}",
+      "args": [
+        "--platform",
+        "ComputeAorta",
+        "--device",
+        // "RefSi G1 RV64",
+        "RefSi M1",
+      ],
       "cwd": "${workspaceFolder}",
-      "env": {},
-      "terminal": "console",
+      "env": {
+        "OCL_ICD_VENDORS": "${workspaceFolder}/build/share/OpenCL/vendors",
+      },
+      "terminal": "integrated",
     }
   ]
 }

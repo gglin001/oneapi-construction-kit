@@ -44,11 +44,23 @@
       }
     },
     {
+      "name": "cl_linux_conda_riscv_g1",
+      "inherits": "cl_linux_conda",
+      "cacheVariables": {
+        "CA_RISCV_EXTERNAL_HAL_DIR": "${sourceDir}/examples/refsi/hal_refsi",
+        "CA_RISCV_DEVICE": "RefSi G1.*",
+        "HAL_REFSI_SOC": "G1",
+        "CA_MUX_COMPILERS_TO_ENABLE": "riscv;refsi_g1_w",
+        "CA_EXTERNAL_MUX_COMPILER_DIRS": "${sourceDir}/examples/refsi/refsi_g1_wi/compiler/refsi_g1_wi"
+      }
+    },
+    {
       "name": "cl_linux_conda_riscv",
       "inherits": "cl_linux_conda",
       "cacheVariables": {
         "CA_RISCV_EXTERNAL_HAL_DIR": "${sourceDir}/examples/refsi/hal_refsi",
         "CA_RISCV_DEVICE": "RefSi M1.*",
+        "HAL_REFSI_SOC": "M1",
         "CA_MUX_COMPILERS_TO_ENABLE": "riscv;refsi_m1",
         "CA_EXTERNAL_MUX_COMPILER_DIRS": "${sourceDir}/examples/refsi/refsi_m1/compiler/refsi_m1"
       }
