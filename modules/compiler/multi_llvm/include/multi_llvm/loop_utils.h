@@ -28,8 +28,9 @@ inline llvm::Value *createSimpleTargetReduction(
   (void)TTI;
 #if defined(CA_LLVM_IS_DPCPP)
   return llvm::createSimpleTargetReduction(B, Src, RdxKind);
-#endif
+#else
   return llvm::createSimpleReduction(B, Src, RdxKind);
+#endif
 #elif LLVM_VERSION_MAJOR >= 18
   (void)TTI;
   return llvm::createSimpleTargetReduction(B, Src, RdxKind);
