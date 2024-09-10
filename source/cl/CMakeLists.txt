@@ -146,9 +146,6 @@ add_ca_library(CL SHARED
 add_ca_library(CL-static STATIC EXCLUDE_FROM_ALL ${CL_SOURCE_FILES}
   DEPENDS abacus_generate)
 
-target_compile_options(CL PRIVATE -Wno-nonportable-include-path)
-target_compile_options(CL-static PRIVATE -Wno-nonportable-include-path)
-
 if(NOT CA_COMPILER_ENABLE_DYNAMIC_LOADER)
   target_resources(CL NAMESPACES ${BUILTINS_NAMESPACES})
 endif()

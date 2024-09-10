@@ -19,9 +19,4 @@ add_ca_interface_library(multi_llvm)
 target_include_directories(multi_llvm INTERFACE
 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-# work with dpcpp
-if(CA_LLVM_IS_DPCPP)
-  target_link_libraries(multi_llvm INTERFACE LLVMSYCLNativeCPUUtils)
-endif()
-
 # No need to append interface libraries to MODULES_LIBRARIES variable

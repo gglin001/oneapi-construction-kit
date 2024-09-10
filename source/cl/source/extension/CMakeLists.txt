@@ -190,7 +190,6 @@ endforeach()
 add_ca_library(extension STATIC
   ${EXTENSION_RUNTIME_SOURCES}
   ${EXTENSION_COMPILER_SOURCES})
-target_compile_options(extension PRIVATE -Wno-nonportable-include-path)
 
 # Add the default include directory for use by OpenCL applications.
 set(CA_CL_EXTENSION_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include)
