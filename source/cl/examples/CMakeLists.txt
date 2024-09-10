@@ -97,7 +97,7 @@ add_ca_cl_example(clSubGroups
   ${CMAKE_CURRENT_SOURCE_DIR}/SubGroups/source/main.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/common.h)
 
-if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/clinfo")
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/clinfo/src/clinfo.c")
   add_ca_cl_example(clinfo
     ${CMAKE_CURRENT_SOURCE_DIR}/clinfo/src/clinfo.c)
     target_compile_options(clinfo PRIVATE "-Wno-error=macro-redefined")
