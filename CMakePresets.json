@@ -93,7 +93,7 @@
         "CA_RISCV_EXTERNAL_HAL_DIR": "${sourceDir}/examples/refsi/hal_refsi",
         "CA_RISCV_DEVICE": "RefSi G1.*",
         "HAL_REFSI_SOC": "G1",
-        "CA_MUX_COMPILERS_TO_ENABLE": "host;riscv;refsi_m1;refsi_g1_wi",
+        "CA_MUX_COMPILERS_TO_ENABLE": "host;refsi_g1_wi",
         "CA_EXTERNAL_MUX_COMPILER_DIRS": "${sourceDir}/examples/refsi/refsi_g1_wi/compiler/refsi_g1_wi"
       }
     },
@@ -104,7 +104,7 @@
         "CA_RISCV_EXTERNAL_HAL_DIR": "${sourceDir}/examples/refsi/hal_refsi",
         "CA_RISCV_DEVICE": "RefSi M1.*",
         "HAL_REFSI_SOC": "M1",
-        "CA_MUX_COMPILERS_TO_ENABLE": "host;riscv;refsi_m1;refsi_g1_wi",
+        "CA_MUX_COMPILERS_TO_ENABLE": "host;refsi_m1",
         "CA_EXTERNAL_MUX_COMPILER_DIRS": "${sourceDir}/examples/refsi/refsi_m1/compiler/refsi_m1"
       }
     }
