@@ -26,10 +26,10 @@ inline llvm::Value *createSimpleTargetReduction(
     llvm::Value *Src, llvm::RecurKind RdxKind) {
 #if LLVM_VERSION_MAJOR >= 20
   (void)TTI;
-  // works with current dpcpp
+#if defined(CA_LLVM_IS_DPCPP)
   return llvm::createSimpleTargetReduction(B, Src, RdxKind);
-  // TODO: revert when dpcpp updates
-  // return llvm::createSimpleReduction(B, Src, RdxKind);
+#endif
+  return llvm::createSimpleReduction(B, Src, RdxKind);
 #elif LLVM_VERSION_MAJOR >= 18
   (void)TTI;
   return llvm::createSimpleTargetReduction(B, Src, RdxKind);

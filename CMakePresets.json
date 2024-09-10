@@ -72,6 +72,19 @@
         "CA_RISCV_ENABLED": false,
         "CA_LLVM_INSTALL_DIR": "/Users/allen/micromamba/envs/mlir"
       }
+    },
+    {
+      "name": "cl_macos_conda",
+      "inherits": "cl_linux",
+      "cacheVariables": {
+        "CA_LLVM_INSTALL_DIR": "/Users/allen/micromamba/envs/mlir",
+        "RISCV_TOOLCHAIN_DIR": "/Users/allen/micromamba/envs/mlir",
+        "CMAKE_C_COMPILER": "/Users/allen/micromamba/envs/mlir/bin/clang",
+        "CMAKE_CXX_COMPILER": "/Users/allen/micromamba/envs/mlir/bin/clang++",
+        "CMAKE_AR": "/Users/allen/micromamba/envs/mlir/bin/llvm-ar",
+        "CA_RISCV_ENABLED": true,
+        "CA_CL_ENABLE_ICD_LOADER": true
+      }
     }
   ]
 }
