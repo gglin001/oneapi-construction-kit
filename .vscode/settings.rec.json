@@ -8,4 +8,10 @@
     },
     "files.trimTrailingWhitespace": false,
     "files.insertFinalNewline": false,
+    // "files.watcherExclude": {
+    //     "**/.git/*/**": true,
+    //     "**/**/**": true,
+    //     "**/*/**": true,
+    //     "**/**": true,
+    // },
 }
